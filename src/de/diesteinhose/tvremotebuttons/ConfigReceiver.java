@@ -1,4 +1,4 @@
-package io.github.diesteinhose.tvremotebuttons;
+package de.diesteinhose.tvremotebuttons;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -8,21 +8,21 @@ import android.util.Log;
 
 /**
  * Configuration via adb (shell/system only: the receiver requires android.permission.DUMP).
- *   Assign:          am broadcast -n io.github.diesteinhose.tvremotebuttons/.ConfigReceiver --ei key 192 --es target @ha
- *   Default:         am broadcast -n io.github.diesteinhose.tvremotebuttons/.ConfigReceiver --ei key 192 --es target default
- *   HA address:      am broadcast -n io.github.diesteinhose.tvremotebuttons/.ConfigReceiver --es ha_url http://homeassistant.local:8123
- *   Trigger button:  am broadcast -n io.github.diesteinhose.tvremotebuttons/.ConfigReceiver --ei test 192
- *   Profile:         am broadcast -n io.github.diesteinhose.tvremotebuttons/.ConfigReceiver --es profile chiq_mt58   (or none, auto)
+ *   Assign:          am broadcast -n de.diesteinhose.tvremotebuttons/.ConfigReceiver --ei key 192 --es target @ha
+ *   Default:         am broadcast -n de.diesteinhose.tvremotebuttons/.ConfigReceiver --ei key 192 --es target default
+ *   HA address:      am broadcast -n de.diesteinhose.tvremotebuttons/.ConfigReceiver --es ha_url http://homeassistant.local:8123
+ *   Trigger button:  am broadcast -n de.diesteinhose.tvremotebuttons/.ConfigReceiver --ei test 192
+ *   Profile:         am broadcast -n de.diesteinhose.tvremotebuttons/.ConfigReceiver --es profile chiq_mt58   (or none, auto)
  *   Only if not set yet (for setup scripts): add --ez keep true
  *   Double/hold:     add --es action double (or long); applies to target and test
  *   Global on/off:   --ez double_on true --ez long_on true   (default: both off)
  *   Timing:          --ei double_ms 350 --ei long_ms 500
- *   Button type:     am broadcast -n io.github.diesteinhose.tvremotebuttons/.ConfigReceiver --ei key 192 --es type free
- *   Name:            am broadcast -n io.github.diesteinhose.tvremotebuttons/.ConfigReceiver --ei key 192 --es name "My button"
- *   Backup:          am broadcast -n io.github.diesteinhose.tvremotebuttons/.ConfigReceiver --ez export true
+ *   Button type:     am broadcast -n de.diesteinhose.tvremotebuttons/.ConfigReceiver --ei key 192 --es type free
+ *   Name:            am broadcast -n de.diesteinhose.tvremotebuttons/.ConfigReceiver --ei key 192 --es name "My button"
+ *   Backup:          am broadcast -n de.diesteinhose.tvremotebuttons/.ConfigReceiver --ez export true
  *                      (result data: all settings as base64 JSON)
- *   Restore:         am broadcast -n io.github.diesteinhose.tvremotebuttons/.ConfigReceiver --es import <base64 from export>
- *   Intent:          am broadcast -n io.github.diesteinhose.tvremotebuttons/.ConfigReceiver --ei key 192 \
+ *   Restore:         am broadcast -n de.diesteinhose.tvremotebuttons/.ConfigReceiver --es import <base64 from export>
+ *   Intent:          am broadcast -n de.diesteinhose.tvremotebuttons/.ConfigReceiver --ei key 192 \
  *                      --es target "'intent:#Intent;action=android.settings.WIFI_SETTINGS;end'"
  * Targets as in KeyMap: package, package/class, intent:..., scheme:..., @livetv, @home, @epg, @ha,
  * http(s)://..., @none, @system. Every broadcast returns the current configuration as result data.

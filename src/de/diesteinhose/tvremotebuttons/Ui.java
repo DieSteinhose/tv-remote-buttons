@@ -1,4 +1,4 @@
-package io.github.diesteinhose.tvremotebuttons;
+package de.diesteinhose.tvremotebuttons;
 
 import android.app.Activity;
 import android.content.res.ColorStateList;

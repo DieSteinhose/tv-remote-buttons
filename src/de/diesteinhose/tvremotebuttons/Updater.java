@@ -1,4 +1,4 @@
-package io.github.diesteinhose.tvremotebuttons;
+package de.diesteinhose.tvremotebuttons;
 
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;

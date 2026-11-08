@@ -98,7 +98,7 @@ Open **TV Remote Buttons** from the app list. If the service is not running yet,
 **Turn on service**, which opens *Settings › Accessibility*. You can also enable it via adb:
 
 ```sh
-adb shell settings put secure enabled_accessibility_services io.github.diesteinhose.tvremotebuttons/.KeyService
+adb shell settings put secure enabled_accessibility_services de.diesteinhose.tvremotebuttons/.KeyService
 adb shell settings put secure accessibility_enabled 1
 ```
 
@@ -133,7 +133,7 @@ the APK. A profile defines:
 - how it matches: TV `brand` and `hardware` prefix, and/or `remotes` (input device name prefix,
   vendor and product ID); a profile matching TV and remote wins over one matching only one of them,
 - the buttons of the remote: `key` (Android keycode name without `KEYCODE_`), `type` (see
-  [`ButtonTypes.java`](src/io/github/diesteinhose/tvremotebuttons/ButtonTypes.java)), `default` target and an optional
+  [`ButtonTypes.java`](src/de/diesteinhose/tvremotebuttons/ButtonTypes.java)), `default` target and an optional
   localized `name`,
 - the live TV activity (`liveTv`), whether the program guide can be opened (`epg`),
 - extra keys that must never be intercepted (`protect`),
@@ -196,7 +196,7 @@ npx wrangler deploy                    # prints https://tv-remote-buttons.<accou
 ```
 
 Set `REPO` in `worker/wrangler.toml` to your repository and `Report.URL` in
-[`Report.java`](src/io/github/diesteinhose/tvremotebuttons/Report.java) to `<worker URL>/report`, create the label
+[`Report.java`](src/de/diesteinhose/tvremotebuttons/Report.java) to `<worker URL>/report`, create the label
 (`gh label create device-report`) and allow GitHub Actions to create pull requests in the
 repository settings.
 
@@ -230,7 +230,7 @@ The `ConfigReceiver` accepts broadcasts from the shell only (it requires `androi
 Every broadcast prints the current configuration.
 
 ```sh
-R="am broadcast -n io.github.diesteinhose.tvremotebuttons/.ConfigReceiver"
+R="am broadcast -n de.diesteinhose.tvremotebuttons/.ConfigReceiver"
 adb shell $R                                              # show configuration
 adb shell $R --es profile auto                            # detected profile (or an id, or none)
 adb shell $R --ei key 247 --es target com.google.android.youtube.tv

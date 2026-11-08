@@ -1,6 +1,6 @@
-package io.github.diesteinhose.tvremotebuttons;
+package de.diesteinhose.tvremotebuttons;
 
-import static io.github.diesteinhose.tvremotebuttons.Ui.*;
+import static de.diesteinhose.tvremotebuttons.Ui.*;
 
 import android.app.Activity;
 import android.content.ComponentName;

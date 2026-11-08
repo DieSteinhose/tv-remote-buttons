@@ -9,7 +9,7 @@
     <string name="status_on">Service active</string>
     <string name="status_off">Service not active</string>
     <string name="main_hint">Choose a button to set what it does. Changes apply immediately.</string>
-    <string name="service_off_hint">Turn on “%1$s” under Settings › Accessibility. Or via adb:\n\nsettings put secure enabled_accessibility_services io.github.diesteinhose.tvremotebuttons/.KeyService\n\nsettings put secure accessibility_enabled 1</string>
+    <string name="service_off_hint">Turn on “%1$s” under Settings › Accessibility. Or via adb:\n\nsettings put secure enabled_accessibility_services de.diesteinhose.tvremotebuttons/.KeyService\n\nsettings put secure accessibility_enabled 1</string>
     <string name="enable_service">Turn on service</string>
     <string name="enable_service_sub">Opens the accessibility settings</string>
     <string name="section_buttons">Buttons</string>

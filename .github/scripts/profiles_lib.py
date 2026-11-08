@@ -5,7 +5,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 PROFILES = ROOT / "profiles" / "profiles.json"
-BUTTON_TYPES_JAVA = ROOT / "src" / "io" / "github" / "diesteinhose" / "tvremotebuttons" / "ButtonTypes.java"
+BUTTON_TYPES_JAVA = ROOT / "src" / "de" / "diesteinhose" / "tvremotebuttons" / "ButtonTypes.java"
 
 SPECIAL_TARGETS = {"@system", "@none", "@home", "@livetv", "@epg", "@ha"}
 KEY_RE = re.compile(r"^[A-Z0-9_]+$")

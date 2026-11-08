@@ -1,4 +1,4 @@
-package io.github.diesteinhose.tvremotebuttons;
+package de.diesteinhose.tvremotebuttons;
 
 import android.content.Context;
 import android.hardware.input.InputManager;

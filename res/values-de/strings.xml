@@ -7,7 +7,7 @@
     <string name="status_on">Dienst aktiv</string>
     <string name="status_off">Dienst nicht aktiv</string>
     <string name="main_hint">Wähle eine Taste, um festzulegen, was sie tut. Änderungen gelten sofort.</string>
-    <string name="service_off_hint">Schalte „%1$s“ unter Einstellungen › Bedienungshilfen ein. Oder per adb:\n\nsettings put secure enabled_accessibility_services io.github.diesteinhose.tvremotebuttons/.KeyService\n\nsettings put secure accessibility_enabled 1</string>
+    <string name="service_off_hint">Schalte „%1$s“ unter Einstellungen › Bedienungshilfen ein. Oder per adb:\n\nsettings put secure enabled_accessibility_services de.diesteinhose.tvremotebuttons/.KeyService\n\nsettings put secure accessibility_enabled 1</string>
     <string name="enable_service">Dienst einschalten</string>
     <string name="enable_service_sub">Öffnet die Bedienungshilfen</string>
     <string name="section_buttons">Tasten</string>
