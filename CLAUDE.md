@@ -14,3 +14,4 @@
   tag and GitHub Actions builds, signs and publishes the release.
 - The report worker (`worker/`) is deployed manually with `npx wrangler@4 deploy`.
 - Commit or push only when the user asks for it.
+- No `Co-Authored-By: Claude` trailers or other AI attribution in commit messages or PRs.
