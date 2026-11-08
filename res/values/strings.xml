@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- English (default). German: values-de/strings.xml -->
+<resources>
+    <string name="app_name">Remote Buttons</string>
+    <string name="service_desc">Gives the buttons of your remote new functions (e.g. YouTube, Netflix, Live TV). Only sees key presses and which app is in front, never screen content.</string>
+
+    <!-- Overview -->
+    <string name="eyebrow_remote">Remote control</string>
+    <string name="status_on">Service active</string>
+    <string name="status_off">Service not active</string>
+    <string name="main_hint">Choose a button to set what it does. Changes apply immediately.</string>
+    <string name="service_off_hint">Turn on “%1$s” under Settings › Accessibility. Or via adb:\n\nsettings put secure enabled_accessibility_services local.chiq.keys/.KeyService\n\nsettings put secure accessibility_enabled 1</string>
+    <string name="enable_service">Turn on service</string>
+    <string name="enable_service_sub">Opens the accessibility settings</string>
+    <string name="section_buttons">Buttons</string>
+    <string name="no_buttons">No buttons yet. Choose a device profile or add buttons yourself.</string>
+    <string name="customized">customized</string>
+    <string name="add_button">Add button</string>
+    <string name="add_button_sub">Teach another button of the remote</string>
+    <string name="section_profile">Device profile</string>
+    <string name="section_ha">Home Assistant</string>
+    <string name="ha_address">Address</string>
+    <string name="service_inactive_toast">The service is not active.</string>
+
+    <!-- Welcome / profiles -->
+    <string name="welcome">Welcome</string>
+    <string name="welcome_body">Give the buttons of your remote new functions: open apps or submenus, show the program guide or trigger Home Assistant.</string>
+    <string name="section_device">This TV</string>
+    <string name="section_recommended">Recommended profile</string>
+    <string name="profile_keys">%1$d buttons: %2$s</string>
+    <string name="use_profile">Use profile</string>
+    <string name="use_profile_sub">Recommended for this TV</string>
+    <string name="no_profile">No profile</string>
+    <string name="no_profile_sub">Teach buttons yourself</string>
+    <string name="start_without_profile">Start without profile</string>
+    <string name="other_profile">Choose another profile</string>
+    <string name="other_profile_sub">For TVs with a similar remote</string>
+    <string name="no_match">There is no profile for this TV yet. Simply teach the buttons yourself.</string>
+    <string name="choose_profile">Choose profile</string>
+    <string name="profile_body">A profile knows the buttons of a remote and suggests what they should do. Your own assignments are kept.</string>
+    <string name="badge_recommended">Recommended</string>
+    <string name="badge_detected">Detected</string>
+
+    <!-- Teach a button -->
+    <string name="capture_title">Press a button</string>
+    <string name="capture_hint">Press the button on the remote that you want to assign.\nBack cancels.</string>
+    <string name="new_button">New button · %1$s</string>
+    <string name="type_title">Which button is it?</string>
+    <string name="type_body">The type sets the name and a suggestion for what the button should do. You can change both later.</string>
+    <string name="section_type">Button type</string>
+
+    <!-- Button types -->
+    <string name="type_livetv">Live TV</string>
+    <string name="type_guide">Guide</string>
+    <string name="type_netflix">Netflix</string>
+    <string name="type_youtube">YouTube</string>
+    <string name="type_prime">Prime Video</string>
+    <string name="type_disney">Disney+</string>
+    <string name="type_play">Google Play</string>
+    <string name="type_apps">Apps</string>
+    <string name="type_settings">Settings</string>
+    <string name="type_input">Input</string>
+    <string name="type_media">USB / Media</string>
+    <string name="type_free">Custom button</string>
+    <string name="type_other">Other button</string>
+    <string name="key_guide2">Guide (2nd Live TV button)</string>
+    <string name="key_usb">USB</string>
+
+    <!-- Assignment -->
+    <string name="button_eyebrow">Button · %1$s</string>
+    <string name="now">Now: %1$s</string>
+    <string name="cat_general">General</string>
+    <string name="cat_tv">Television</string>
+    <string name="cat_settings">Settings</string>
+    <string name="cat_apps">Apps</string>
+    <string name="cat_sub">App submenus</string>
+    <string name="cat_hook">Home Assistant</string>
+    <string name="cat_intent">Intent / Link</string>
+    <string name="cat_key">Button</string>
+    <string name="t_default">Default</string>
+    <string name="t_system">Factory behavior</string>
+    <string name="t_system_sub">Don\'t intercept, the TV decides</string>
+    <string name="t_none">Do nothing</string>
+    <string name="t_none_sub">The button is ignored</string>
+    <string name="t_home">Home screen</string>
+    <string name="t_home_sub">Like the Home button</string>
+    <string name="t_livetv">Live TV</string>
+    <string name="t_livetv_missing">No live TV app found</string>
+    <string name="t_epg">Program guide (EPG)</string>
+    <string name="t_epg_sub">Opens the guide, press again to close it</string>
+    <string name="t_settings">TV settings</string>
+    <string name="t_settings_sub">Main page</string>
+    <string name="t_settings_page">TV settings › %1$s</string>
+    <string name="section_subpages">Submenus</string>
+    <string name="sub_hint">Choose the app first, then one of its pages that can be opened from outside.</string>
+    <string name="sub_current">contains the current page</string>
+    <string name="sub_show">Show pages</string>
+    <string name="all_apps">All apps</string>
+    <string name="sub_none">This app has no pages that can be opened from outside.</string>
+    <string name="t_ha">Home Assistant</string>
+    <string name="t_ha_desc">Home Assistant · Webhook %1$s</string>
+    <string name="t_ha_sub">Webhook %1$s · %2$s</string>
+    <string name="t_webhook">Webhook %1$s</string>
+    <string name="section_own_webhook">Custom webhook URL</string>
+    <string name="webhook_note">Sends an HTTP POST with JSON: key, keycode, name, device.</string>
+    <string name="section_intent">Intent or deep link</string>
+    <string name="intent_note">intent:#Intent;action=…;component=package/.Class;S.extra=value;end  or a link like market://details?id=package. Addresses with http(s) are webhooks.</string>
+    <string name="section_examples">Examples (copy into the field)</string>
+    <string name="ex_wifi">Wi-Fi settings</string>
+    <string name="ex_bt">Pair Bluetooth accessory</string>
+    <string name="ex_play">Play Store: YouTube</string>
+    <string name="trigger_now">Trigger now</string>
+    <string name="trigger_none">Factory behavior – can\'t be triggered here</string>
+    <string name="section_name">Name</string>
+    <string name="reset_name">Reset name</string>
+    <string name="change_type">Change button type</string>
+    <string name="section_remove">Remove</string>
+    <string name="remove_button">Remove button</string>
+    <string name="remove_button_sub">Leave the button to the TV again</string>
+    <string name="keycode_note">Keycode %1$d (%2$s)</string>
+    <string name="not_installed">%1$s (not installed)</string>
+
+    <!-- Badges -->
+    <string name="b_app">App</string>
+    <string name="b_sub">Submenu</string>
+    <string name="b_tv">TV</string>
+    <string name="b_system">System</string>
+    <string name="b_webhook">Webhook</string>
+    <string name="b_intent">Intent</string>
+    <string name="b_link">Link</string>
+    <string name="b_off">Off</string>
+    <string name="b_factory">Factory</string>
+    <string name="b_missing">Missing</string>
+    <string name="b_active">Active</string>
+
+    <!-- Home Assistant address -->
+    <string name="ha_body">Base address for the webhooks. A button with the target “Home Assistant” calls &lt;address&gt;/api/webhook/chiq_tv_&lt;button&gt;.</string>
+    <string name="section_address">Address</string>
+    <string name="section_default">Default</string>
+    <string name="restore_default">Restore default</string>
+
+    <!-- Editor, messages -->
+    <string name="save">Save</string>
+    <string name="try_it">Try it</string>
+    <string name="invalid">Invalid input</string>
+    <string name="webhook_failed">Webhook failed (%1$s)</string>
+    <string name="webhook_sent">Webhook sent (HTTP %1$d)</string>
+
+    <!-- Submenus of the TV settings -->
+    <string name="page_network">Network &amp; Internet</string>
+    <string name="page_picture">Picture</string>
+    <string name="page_sound">Sound</string>
+    <string name="page_display_sound">Display &amp; Sound</string>
+    <string name="page_timer">Timer</string>
+    <string name="page_energy">Energy</string>
+    <string name="page_apps">Apps</string>
+    <string name="page_all_apps">All apps</string>
+    <string name="page_accessory">Pair accessory</string>
+    <string name="page_date">Date &amp; time</string>
+    <string name="page_language">Language</string>
+    <string name="page_keyboard">Keyboard</string>
+    <string name="page_a11y">Accessibility</string>
+    <string name="page_captions">Captions</string>
+    <string name="page_ambient">Screensaver (Ambient)</string>
+    <string name="page_accounts">Accounts</string>
+    <string name="page_security">Security</string>
+    <string name="page_storage">Storage &amp; reset</string>
+    <string name="page_about">About</string>
+    <string name="page_dev">Developer options</string>
+    <!-- Press, double press, hold -->
+    <string name="act_single">Press</string>
+    <string name="act_double">Press twice</string>
+    <string name="act_long">Hold</string>
+    <string name="act_double_short">2×</string>
+    <string name="act_long_short">Hold</string>
+    <string name="t_unset">Not assigned</string>
+    <string name="t_unset_double">Pressing twice triggers the normal press twice</string>
+    <string name="t_unset_long">Holding works like a normal press</string>
+    <string name="warn_factory">With “press twice” or “hold” assigned, a normal press can no longer trigger the factory function. Assign it a target of its own.</string>
+    <!-- Global press options -->
+    <string name="section_press">Press options</string>
+    <string name="press_row">Press twice &amp; hold</string>
+    <string name="press_off">Off – buttons react immediately</string>
+    <string name="press_on_double">2× on (%1$d ms)</string>
+    <string name="press_on_long">Hold on (%1$d ms)</string>
+    <string name="press_body">By default every button reacts immediately to a single press.\n\nWith “press twice” on, buttons that have a double-press assignment wait briefly for a second press, so they react a little later. With “hold” on, buttons that have a hold assignment react when released. All other buttons stay instant.</string>
+    <string name="on">On</string>
+    <string name="off">Off</string>
+    <string name="double_toggle_sub">Give pressing twice a function of its own</string>
+    <string name="long_toggle_sub">Give holding a function of its own</string>
+    <string name="section_wait">Waiting time for the second press</string>
+    <string name="section_hold">Hold duration</string>
+    <string name="ms">%1$d ms</string>
+    <string name="wait_fast">Fast – press twice quickly</string>
+    <string name="wait_relaxed">Relaxed – reacts later</string>
+    <string name="hold_short">Short</string>
+    <string name="hold_long">Long</string>
+    <string name="hold_very_long">Very long</string>
+    <string name="std">Default</string>
+</resources>
