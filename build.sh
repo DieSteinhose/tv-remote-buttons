@@ -3,8 +3,10 @@
 # Output: build/tv-remote-buttons.apk
 # Requires: Android SDK (platforms/android-34, build-tools/34.0.0), a JDK (11+), rsvg-convert, ImageMagick.
 #
-# Signing: by default a local key is created in ~/.android/tv-remote-buttons.jks. To use an existing
-# key, create signing.env next to this script (it is git-ignored), e.g.
+# Signing: by default a local key is created in ~/.android/tv-remote-buttons.jks. Official releases
+# are built and signed by GitHub Actions (.github/workflows/release.yml) with the release key from
+# the repository secrets. To sign local builds with that key, create signing.env next to this
+# script (it is git-ignored), e.g.
 #   KEYSTORE=$HOME/.android/my.jks
 #   KEY_ALIAS=mykey
 #   KEYSTORE_PASS=secret
@@ -25,11 +27,13 @@ rm -rf "$OUT" res/drawable-de-xhdpi; mkdir -p "$OUT/classes" res/drawable-xhdpi 
 
 # Graphics from SVG: launcher banner and icon
 rsvg-convert -w 320 -h 180 art/banner.svg -o res/drawable-xhdpi/banner.png
-magick res/drawable-xhdpi/banner.png -gravity west -crop 180x180+0+0 +repage -resize 96x96 res/mipmap-xhdpi/ic_launcher.png
+MAGICK=$(command -v magick || command -v convert)   # ImageMagick 7 or 6
+"$MAGICK" res/drawable-xhdpi/banner.png -gravity west -crop 180x180+0+0 +repage -resize 96x96 res/mipmap-xhdpi/ic_launcher.png
 
-# Resources + manifest (also generates R.java)
+# Resources + manifest (also generates R.java); profiles/profiles.json is bundled as fallback
+mkdir -p "$OUT/assets"; cp profiles/profiles.json "$OUT/assets/"
 "$BT/aapt2" compile --dir res -o "$OUT/res.zip"
-"$BT/aapt2" link -I "$JAR" --manifest AndroidManifest.xml -o "$OUT/unsigned.apk" --java "$OUT/gen" "$OUT/res.zip"
+"$BT/aapt2" link -I "$JAR" --manifest AndroidManifest.xml -A "$OUT/assets" -o "$OUT/unsigned.apk" --java "$OUT/gen" "$OUT/res.zip"
 
 # Code
 javac --release 11 -Xlint:-options -classpath "$JAR" -d "$OUT/classes" $(find src "$OUT/gen" -name '*.java')

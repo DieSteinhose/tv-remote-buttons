@@ -75,17 +75,21 @@ public class SettingsActivity extends Activity {
     protected void onResume() {
         super.onResume();
         appCache = null; // apps may have changed
-        if (back == null) {
-            if (KeyMap.profileChosen(this)) showMain();
-            else showWelcome();
-        }
+        if (back == null) showStart();
+        // fetch current profiles from GitHub; rebuild the start screen if they changed
+        Profiles.refresh(this, false, () -> { if (back == null) showStart(); });
+    }
+
+    private void showStart() {
+        if (KeyMap.profileChosen(this)) showMain();
+        else showWelcome();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
         if (KeyService.capture != null) { // cancel capturing; show the overview when coming back
-            KeyService.capture = null;
+            stopMapping();
             back = null;
         }
     }
@@ -117,7 +121,7 @@ public class SettingsActivity extends Activity {
         dev.setFocusable(false);
         right.addView(dev);
 
-        Profiles.Profile p = Profiles.detect();
+        Profiles.Profile p = Profiles.detect(this);
         View focus;
         if (p != null) {
             right.addView(ui.section(s(R.string.section_recommended)));
@@ -155,9 +159,9 @@ public class SettingsActivity extends Activity {
         Profiles.Profile active = KeyMap.profile(this);
         boolean chosen = KeyMap.profileChosen(this);
         View focus = null;
-        for (Profiles.Profile p : Profiles.ALL) {
+        for (Profiles.Profile p : Profiles.all(this)) {
             boolean on = active == p;
-            String badge = on ? s(R.string.b_active) : p.matches() ? s(R.string.badge_detected) : null;
+            String badge = on ? s(R.string.b_active) : p.score(this) > 0 ? s(R.string.badge_detected) : null;
             View r = ui.row(null, R.drawable.ic_remote, on ? ACCENT : C_SUB, p.title, keyList(p), badge, ACCENT,
                     () -> chooseProfile(p.id));
             if (on || focus == null) focus = r;
@@ -183,7 +187,7 @@ public class SettingsActivity extends Activity {
         for (Profiles.Key k : p.keys) {
             ButtonTypes.Type t = ButtonTypes.byId(k.type);
             if (sb.length() > 0) sb.append(", ");
-            sb.append(k.name != 0 ? s(k.name) : t != null ? s(t.name) : KeyMap.label(k.code));
+            sb.append(k.name() != null ? k.name() : t != null ? s(t.name) : KeyMap.label(k.code));
         }
         return s(R.string.profile_keys, p.keys.length, sb.toString());
     }
@@ -255,9 +259,61 @@ public class SettingsActivity extends Activity {
         ui.addChevron(up);
         list.addView(up);
 
+        list.addView(ui.section(s(R.string.section_app)));
+        list.addView(updateRow());
+
         ui.setScreen(left, list);
         ui.requestFocusLater(focus);
         focusCode = -1;
+    }
+
+    // ------------------------------------------------------------------ Updates
+
+    private Updater.Release update;
+    private String updateText;
+    private boolean updateChecked, updating;
+
+    /** "Version 1.2" with the update status; selecting it installs an available update. */
+    private View updateRow() {
+        if (!updateChecked) {
+            updateChecked = true;
+            updateText = s(R.string.update_checking);
+            Updater.check(this, (newer, err) -> {
+                update = newer;
+                updateText = newer != null ? s(R.string.update_available, newer.version)
+                        : err != null ? s(R.string.update_error, err) : s(R.string.update_none);
+                setRowSub(updateRowView, updateText);
+            });
+        }
+        LinearLayout r = ui.row(null, R.drawable.ic_download, update != null ? GREEN : C_OFF,
+                s(R.string.app_version, Updater.versionName(this)), updateText,
+                update != null ? s(R.string.b_update) : null, GREEN, () -> {
+                    if (update == null) { updateChecked = false; setRowSub(updateRowView, s(R.string.update_checking)); updateRow(); return; }
+                    if (updating) return;
+                    updating = true;
+                    Updater.install(this, update, (pct, err, needsPermission) -> {
+                        if (needsPermission) { updating = false; setRowSub(updateRowView, s(R.string.update_permission)); }
+                        else if (err != null) { updating = false; setRowSub(updateRowView, s(R.string.update_failed, err)); }
+                        else setRowSub(updateRowView, pct < 100 ? s(R.string.update_downloading, pct) : s(R.string.update_installing));
+                        if (pct >= 100) updating = false;
+                    });
+                });
+        updateRowView = r;
+        return r;
+    }
+
+    private LinearLayout updateRowView;
+
+    /** Replaces the subtitle of a row created by Ui.row (if the row is still on screen). */
+    private static void setRowSub(LinearLayout row, String text) {
+        if (row == null || !row.isAttachedToWindow()) return;
+        for (int i = 0; i < row.getChildCount(); i++) {
+            if (row.getChildAt(i) instanceof LinearLayout) {
+                LinearLayout texts = (LinearLayout) row.getChildAt(i);
+                if (texts.getChildCount() > 1) ((TextView) texts.getChildAt(1)).setText(text);
+                return;
+            }
+        }
     }
 
     private View statusChip(boolean on) {
@@ -356,8 +412,12 @@ public class SettingsActivity extends Activity {
 
     // ------------------------------------------------------------------ Upload buttons (device report)
 
-    /** Shows what a device report contains and uploads it (anonymously, via the report worker). */
+    /**
+     * Shows what a device report contains and uploads it (anonymously, via the report worker).
+     * Uploading needs a button mapping first (see showMapStep); one report per TV and day.
+     */
     private void showUpload() {
+        stopMapping();
         back = this::showMain;
         LinearLayout left = ui.column();
         left.addView(ui.eyebrow(s(R.string.section_help)));
@@ -367,6 +427,19 @@ public class SettingsActivity extends Activity {
         left.addView(b);
 
         LinearLayout right = ui.column();
+        right.addView(ui.section(s(R.string.section_mapping)));
+        org.json.JSONArray mapping = Report.mapping(this);
+        LinearLayout map;
+        if (mapping == null) {
+            map = ui.row(null, R.drawable.ic_remote, ACCENT, s(R.string.map_start), s(R.string.map_status_none),
+                    null, 0, () -> showMapStep(0, true));
+        } else {
+            map = ui.row(null, R.drawable.ic_remote, GREEN, s(R.string.map_redo),
+                    s(R.string.map_status, mapping.length(), mappingRemote(mapping)), null, 0, () -> showMapStep(0, true));
+        }
+        ui.addChevron(map);
+        right.addView(map);
+
         right.addView(ui.section(s(R.string.section_sent)));
         View dev = ui.row(null, R.drawable.ic_tv, C_OFF, Profiles.deviceName(),
                 "Android " + Build.VERSION.RELEASE + "  ·  " + Build.HARDWARE, null, 0, () -> { });
@@ -383,14 +456,6 @@ public class SettingsActivity extends Activity {
             r.setFocusable(false);
             right.addView(r);
         }
-        List<KeyMap.Entry> entries = KeyMap.entries(this);
-        StringBuilder names = new StringBuilder();
-        for (KeyMap.Entry e : entries) names.append(names.length() > 0 ? ", " : "").append(e.name);
-        View keys = ui.row(null, R.drawable.ic_apps, C_OFF,
-                entries.isEmpty() ? s(R.string.upload_keys_none) : s(R.string.upload_keys, entries.size()),
-                names.toString(), null, 0, () -> { });
-        keys.setFocusable(false);
-        right.addView(keys);
 
         right.addView(ui.section(s(R.string.section_note)));
         EditText note = ui.textField(drafts.containsKey("note") ? drafts.get("note") : "", s(R.string.note_hint), false);
@@ -404,11 +469,14 @@ public class SettingsActivity extends Activity {
         TextView send = ui.button(s(R.string.upload_send), true, () -> { });
         send.setOnClickListener(v -> {
             if (!Report.enabled()) { showStatus(status, s(R.string.upload_not_configured), RED); return; }
+            if (Report.mapping(this) == null) { showMapStep(0, true); return; }
+            if (Report.uploadedToday(this)) { showStatus(status, s(R.string.upload_today), C_INTENT); return; }
             send.setEnabled(false);
             showStatus(status, s(R.string.upload_sending), TEXT2);
-            Report.upload(Report.build(this, note.getText().toString()), (issue, url, err) -> {
+            Report.upload(this, Report.build(this, note.getText().toString()), (issue, url, err) -> {
                 send.setEnabled(true);
-                if (err != null) showStatus(status, s(R.string.upload_failed, err), RED);
+                if (Report.DAILY_LIMIT.equals(err)) showStatus(status, s(R.string.upload_today), C_INTENT);
+                else if (err != null) showStatus(status, s(R.string.upload_failed, err), RED);
                 else {
                     drafts.remove("note");
                     showStatus(status, s(R.string.upload_done, issue) + (url != null ? "\n" + url : ""), GREEN);
@@ -418,15 +486,138 @@ public class SettingsActivity extends Activity {
         buttons.addView(send);
         right.addView(buttons);
         right.addView(status);
+        if (Report.uploadedToday(this)) showStatus(status, s(R.string.upload_today), C_INTENT);
 
         ui.setScreen(left, right);
-        ui.requestFocusLater(send);
+        ui.requestFocusLater(mapping == null ? map : send);
     }
 
     private static void showStatus(TextView v, String text, int color) {
         v.setText(text);
         v.setTextColor(color);
         v.setVisibility(View.VISIBLE);
+    }
+
+    /** Name of the remote most mapped buttons came from. */
+    private String mappingRemote(org.json.JSONArray mapping) {
+        Map<String, Integer> count = new HashMap<>();
+        String best = "?";
+        int max = 0;
+        for (int i = 0; i < mapping.length(); i++) {
+            String r = mapping.optJSONObject(i).optString("remote", "");
+            if (r.isEmpty()) continue;
+            int n = count.containsKey(r) ? count.get(r) + 1 : 1;
+            count.put(r, n);
+            if (n > max) { max = n; best = r; }
+        }
+        return best;
+    }
+
+    // ------------------------------------------------------------------ Button mapping wizard
+
+    /** Button types asked for, in this order; the last step records any further special buttons. */
+    private static final String[] MAP_TYPES = {"livetv", "guide", "netflix", "youtube", "prime", "disney", "play",
+            "apps", "settings", "input", "media", "free"};
+    /** type -> keycode of the current mapping run; extra special buttons in mapExtra. */
+    private final Map<String, Integer> mapCodes = new java.util.LinkedHashMap<>();
+    private final List<Integer> mapExtra = new ArrayList<>();
+    private int mapStep = -1;
+    private final android.os.Handler handler = new android.os.Handler(android.os.Looper.getMainLooper());
+
+    /** One step of the wizard: asks for the button of MAP_TYPES[step], or for more buttons at the end. */
+    private void showMapStep(int step, boolean fresh) {
+        if (!KeyService.running) { ui.toast(s(R.string.service_inactive_toast)); return; }
+        if (fresh) { mapCodes.clear(); mapExtra.clear(); }
+        mapStep = step;
+        int total = MAP_TYPES.length + 1;
+        boolean more = step >= MAP_TYPES.length;
+        back = this::showUpload;
+
+        LinearLayout left = ui.column();
+        left.addView(ui.eyebrow(s(R.string.map_step, step + 1, total)));
+        ButtonTypes.Type type = more ? null : ButtonTypes.byId(MAP_TYPES[step]);
+        left.addView(ui.headline(more ? s(R.string.map_more_title) : s(R.string.map_press, s(type.name))));
+        TextView b = ui.body(s(more ? R.string.map_more_body : R.string.map_press_body));
+        b.setPadding(0, ui.px(14), 0, 0);
+        left.addView(b);
+
+        LinearLayout right = ui.column();
+        right.setGravity(Gravity.CENTER_HORIZONTAL);
+        right.addView(ui.iconBox(null, more ? R.drawable.ic_remote : type.icon, ACCENT, 96));
+        TextView status = ui.headline(s(R.string.map_waiting));
+        status.setTextSize(20);
+        status.setGravity(Gravity.CENTER);
+        status.setPadding(0, ui.px(18), 0, ui.px(6));
+        right.addView(status);
+        TextView sub = ui.note("");
+        sub.setGravity(Gravity.CENTER);
+        right.addView(sub);
+        if (more && !mapExtra.isEmpty()) sub.setText(s(R.string.map_more_count, mapExtra.size()));
+        else if (!more && mapCodes.containsKey(MAP_TYPES[step])) {
+            status.setText(s(R.string.map_got, KeyMap.label(mapCodes.get(MAP_TYPES[step]))));
+        }
+
+        LinearLayout buttons = new LinearLayout(this);
+        buttons.setGravity(Gravity.CENTER_HORIZONTAL);
+        buttons.setPadding(0, ui.px(18), 0, 0);
+        TextView main = more ? ui.button(s(R.string.map_done), true, this::finishMapping)
+                : ui.button(s(R.string.map_skip), true, () -> { mapCodes.remove(MAP_TYPES[step]); showMapStep(step + 1, false); });
+        buttons.addView(main);
+        if (step > 0) buttons.addView(ui.button(s(R.string.map_back), false, () -> showMapStep(step - 1, false)));
+        right.addView(buttons);
+
+        ui.setScreen(left, right);
+        ui.requestFocusLater(main);
+
+        KeyService.captureAll = true;
+        KeyService.capture = code -> runOnUiThread(() -> {
+            if (mapStep != step) return;                       // already moving on
+            if (more) {
+                if (!mapCodes.containsValue(code) && !mapExtra.contains(code)) mapExtra.add(code);
+                status.setText(s(R.string.map_got, KeyMap.label(code)));
+                sub.setText(s(R.string.map_more_count, mapExtra.size()));
+                return;
+            }
+            for (Map.Entry<String, Integer> m : mapCodes.entrySet()) {
+                if (m.getValue() == code && !m.getKey().equals(MAP_TYPES[step])) {
+                    status.setText(s(R.string.map_taken, s(ButtonTypes.byId(m.getKey()).name)));
+                    return;
+                }
+            }
+            mapCodes.put(MAP_TYPES[step], code);
+            status.setText(s(R.string.map_got, KeyMap.label(code)));
+            mapStep = -1;
+            handler.postDelayed(() -> showMapStep(step + 1, false), 700);
+        });
+    }
+
+    /** Saves the mapping and adds buttons the app did not know yet (factory behavior, so nothing changes). */
+    private void finishMapping() {
+        stopMapping();
+        org.json.JSONArray arr = new org.json.JSONArray();
+        android.content.SharedPreferences.Editor ed = KeyMap.prefs(this).edit();
+        List<Integer> known = new ArrayList<>();
+        for (KeyMap.Entry e : KeyMap.entries(this)) known.add(e.code);
+        List<Object[]> all = new ArrayList<>();
+        for (Map.Entry<String, Integer> m : mapCodes.entrySet()) all.add(new Object[]{m.getKey(), m.getValue()});
+        for (int code : mapExtra) all.add(new Object[]{"other", code});
+        for (Object[] m : all) {
+            int code = (Integer) m[1];
+            arr.put(Report.mappingEntry(this, (String) m[0], code));
+            if (!known.contains(code)) {
+                ed.putString("t" + code, (String) m[0]).putString("k" + code, KeyMap.SYSTEM);
+            }
+        }
+        ed.apply();
+        Report.saveMapping(this, arr);
+        showUpload();
+    }
+
+    private void stopMapping() {
+        mapStep = -1;
+        handler.removeCallbacksAndMessages(null);
+        KeyService.captureAll = false;
+        KeyService.capture = null;
     }
 
     // ------------------------------------------------------------------ Teaching a button
@@ -452,6 +643,7 @@ public class SettingsActivity extends Activity {
         root.addView(box, new FrameLayout.LayoutParams(-2, -2, Gravity.CENTER));
         setContentView(root);
 
+        KeyService.captureAll = false;
         KeyService.capture = code -> runOnUiThread(() -> {
             action = KeyMap.SINGLE;
             if (entry(code) != null) showChooser(code);   // already known -> straight to the assignment

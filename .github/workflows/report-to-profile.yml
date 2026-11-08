@@ -1,0 +1,62 @@
+# Turns a device report (issue labeled "device-report", created by the report worker) into a pull
+# request that adds or extends a profile in profiles/profiles.json. After review and merge, the
+# apps download the new profile on their next start - no new app version needed.
+#
+# Only issues opened by the repository owner's token (i.e. by the worker) are processed. The issue
+# body is untrusted: it is only parsed as JSON by report_to_profile.py, never used in shell code.
+name: Report to profile
+
+on:
+  issues:
+    types: [opened]
+  workflow_dispatch:
+    inputs:
+      issue:
+        description: Issue number of a device report
+        required: true
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency: profiles
+
+jobs:
+  profile:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (contains(github.event.issue.labels.*.name, 'device-report') &&
+       github.event.issue.user.login == github.repository_owner)
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      ISSUE: ${{ github.event.issue.number || inputs.issue }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read the report
+        run: gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE" > "$RUNNER_TEMP/issue.json"
+      - name: Generate the profile
+        id: gen
+        env:
+          REPORT_MD: ${{ runner.temp }}/report.md
+        run: python3 .github/scripts/report_to_profile.py "$RUNNER_TEMP/issue.json"
+      - name: Open a pull request
+        if: steps.gen.outputs.action == 'pr'
+        env:
+          BRANCH: ${{ steps.gen.outputs.branch }}
+          TITLE: ${{ steps.gen.outputs.title }}
+        run: |
+          if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null; then
+            echo "Branch $BRANCH exists already"; exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$BRANCH"
+          git commit -qam "$TITLE"
+          git push -q origin "$BRANCH"
+          url=$(gh pr create --head "$BRANCH" --title "$TITLE" --body-file "$RUNNER_TEMP/report.md" --label device-report)
+          gh issue comment "$ISSUE" --body "Profile proposal: $url"
+      - name: Comment on the report
+        if: steps.gen.outputs.action != 'pr'
+        run: gh issue comment "$ISSUE" --body-file "$RUNNER_TEMP/report.md"

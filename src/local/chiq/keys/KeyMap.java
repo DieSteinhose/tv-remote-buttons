@@ -108,11 +108,11 @@ final class KeyMap {
 
     /** Active profile or null. */
     static Profiles.Profile profile(Context c) {
-        return Profiles.byId(prefs(c).getString("profile", null));
+        return Profiles.byId(c, prefs(c).getString("profile", null));
     }
 
     static void setProfile(Context c, String id) {
-        prefs(c).edit().putString("profile", Profiles.byId(id) != null ? id : "none").apply();
+        prefs(c).edit().putString("profile", Profiles.byId(c, id) != null ? id : "none").apply();
     }
 
     /** Keys that are never intercepted: basic functions, navigation and profile-specific keys. */
@@ -244,7 +244,8 @@ final class KeyMap {
         if (n != null) return n;
         Profiles.Profile p = profile(c);
         Profiles.Key k = p != null ? p.key(code) : null;
-        if (k != null && k.name != 0 && prefs(c).getString("t" + code, null) == null) return c.getString(k.name);
+        String own = k != null ? k.name() : null;
+        if (own != null && prefs(c).getString("t" + code, null) == null) return own;
         ButtonTypes.Type t = type(c, code);
         return t != null && !"other".equals(t.id) ? c.getString(t.name) : label(code);
     }

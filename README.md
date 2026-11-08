@@ -24,13 +24,16 @@ navigation. Its UI is available in English and German.
 - **Press, press twice, hold.** Off by default so every button reacts instantly; switch them on
   under *Press options*. Only buttons that actually have a double-press assignment wait for a
   second press.
-- **Device profiles.** On first start the app detects the TV and recommends a matching profile that
-  already knows the buttons of its remote. Without a profile you simply teach the buttons yourself.
+- **Device profiles from this repository.** On first start the app detects the TV and its remote and
+  recommends a matching profile that already knows the buttons. Profiles are downloaded from
+  [`profiles/profiles.json`](profiles/profiles.json) at startup, so new TVs need no new app version.
 - **Teaching buttons.** Press the button, then pick its type (Live TV, Netflix, YouTube, Settings,
   Input, …). The type sets the name and suggests a target.
-- **Upload buttons.** Anyone can send the buttons of their remote (TV model, remote name, keycodes,
-  types) with one click and without an account, so that new device profiles can be added. Reports
-  become public issues labeled `device-report`; apps and assignments are never sent.
+- **Upload buttons.** A short wizard asks which button is Netflix, YouTube, Live TV and so on, then
+  sends the mapping (TV model, remote, keycodes, types) without an account. Each report becomes a
+  public issue, and a workflow turns it into a pull request for `profiles.json`. Apps and
+  assignments are never sent. One report per TV and day.
+- **In-app updates** from the GitHub releases (Android asks you to confirm the installation).
 - **Configuration via adb** for setup scripts (see below).
 
 ## How it works
@@ -45,7 +48,7 @@ for the program guide). It cannot read screen content.
 ## Build
 
 Requirements: Android SDK with `platforms/android-34` and `build-tools/34.0.0`, a JDK (11 or newer),
-`rsvg-convert` (librsvg) and ImageMagick (`magick`).
+`rsvg-convert` (librsvg) and ImageMagick (`magick` or `convert`).
 
 ```sh
 ./build.sh            # -> build/tv-remote-buttons.apk
@@ -55,7 +58,10 @@ Requirements: Android SDK with `platforms/android-34` and `build-tools/34.0.0`, 
 
 ### Signing
 
-On the first build a local key is created in `~/.android/tv-remote-buttons.jks`. To sign with an
+Releases are built and signed by GitHub Actions with the release key from the repository secrets
+(`SIGNING_KEYSTORE_B64`, `SIGNING_KEY_ALIAS`, `SIGNING_KEYSTORE_PASS`).
+
+Local builds create a key in `~/.android/tv-remote-buttons.jks` on the first run. To sign with an
 existing key, create a git-ignored `signing.env` next to `build.sh`:
 
 ```sh
@@ -65,16 +71,22 @@ KEYSTORE_PASS=secret
 ```
 
 Keep using the same key: Android only installs an update if it is signed with the key of the
-installed app.
+installed app. Builds with another key cannot update an installed release.
 
-### Releases
+### Releases and CI
 
-Signed APKs are published under Releases. To publish one, raise `android:versionCode` and
-`android:versionName` in `AndroidManifest.xml`, commit, then run:
+- [`ci.yml`](.github/workflows/ci.yml) checks `profiles.json` and the worker and builds the APK on
+  every push and pull request.
+- [`release.yml`](.github/workflows/release.yml) builds, signs and publishes a release for every
+  `v*` tag. To release, raise `android:versionCode` and `android:versionName` in
+  `AndroidManifest.xml`, commit, then run:
 
-```sh
-./release.sh ["release notes"]   # builds, tags v<versionName>, uploads the APK
-```
+  ```sh
+  ./release.sh ["release notes"]   # pushes the tag v<versionName>; Actions does the rest
+  ```
+
+- [`report-to-profile.yml`](.github/workflows/report-to-profile.yml) turns device reports into
+  profile pull requests (see below).
 
 ## Install and enable
 
@@ -103,8 +115,10 @@ this one with a `:` separator instead.
 - **Press options:** switch *press twice* and *hold* on or off and choose their timing
   (250/350/500 ms and 400/500/800/1000 ms).
 - **Device profile:** switch or remove the profile. Your own assignments are kept.
-- **Upload buttons:** shows exactly what would be sent, with an optional note, and creates a
-  device report.
+- **Upload buttons:** map the buttons in a wizard, see exactly what would be sent, add an optional
+  note and create a device report.
+- **App:** shows the version and installs updates from the latest GitHub release. The first update
+  needs *Install unknown apps* to be allowed for the app.
 
 Note: an app cannot hand an intercepted key back to the system. If a button has a *press twice* or
 *hold* assignment, its single press can therefore no longer trigger the factory function. Give the
@@ -112,12 +126,21 @@ single press a target of its own.
 
 ## Device profiles
 
-Profiles live in [`Profiles.java`](src/local/chiq/keys/Profiles.java). A profile defines:
+Profiles live in [`profiles/profiles.json`](profiles/profiles.json). The app loads them from GitHub
+at startup (at most once per hour), keeps the last download and falls back to the copy bundled in
+the APK. A profile defines:
 
-- the buttons of the remote (keycode, type, default target),
-- the live TV activity of the device,
-- whether the program guide can be opened,
-- extra keys that must never be intercepted.
+- how it matches: TV `brand` and `hardware` prefix, and/or `remotes` (input device name prefix,
+  vendor and product ID); a profile matching TV and remote wins over one matching only one of them,
+- the buttons of the remote: `key` (Android keycode name without `KEYCODE_`), `type` (see
+  [`ButtonTypes.java`](src/local/chiq/keys/ButtonTypes.java)), `default` target and an optional
+  localized `name`,
+- the live TV activity (`liveTv`), whether the program guide can be opened (`epg`),
+- extra keys that must never be intercepted (`protect`),
+- optionally `minApp`, the lowest app versionCode that understands the profile.
+
+Check changes with `python3 .github/scripts/check_profiles.py` (`--fix` applies the canonical
+formatting); CI runs the same check.
 
 Included profiles:
 
@@ -125,31 +148,39 @@ Included profiles:
 |---|---|---|
 | `chiq_mt58` | CHiQ Google TV with MediaTek MT58xx (tested: GTVU65, Android 14) | Bluetooth remote `TVC0GWBT`; the remote sends `MEDIA_SKIP_FORWARD` after every button as a release marker, so that key is protected. |
 
-To add a profile, log the keycodes of the remote and press every button once:
+The easiest way to add a TV is **Upload buttons** in the app: the report becomes an issue, the
+workflow opens a pull request with the generated profile, and after review and merge every app
+picks it up on its next start. Manual edits and pull requests are welcome too; to see keycodes:
 
 ```sh
 adb shell setprop log.tag.RemoteButtons DEBUG
 adb logcat -s RemoteButtons
 ```
 
-Then add a `Profile` to `Profiles.ALL`. Pull requests with new profiles are welcome. Without
-programming, use **Upload buttons** in the app: teach all buttons of your remote first, then upload.
-
 ## Device reports (upload)
 
-**Upload buttons** posts a JSON report to a small [Cloudflare Worker](worker/), which files it as a
-GitHub issue labeled `device-report`. The GitHub token only exists in the worker, so the app needs
-no account. The worker checks size and structure, allows at most 5 reports per minute and IP
-address, does not store IP addresses, and renders all report text as code so it cannot add links
-or mentions.
+Before uploading, a wizard asks for the buttons one by one (Live TV, Guide, Netflix, YouTube,
+Prime Video, Disney+, Google Play, Apps, Settings, Input, USB/Media, custom button), with *Not there*
+to skip, and finally records any further special buttons. Buttons the app did not know yet are added
+to the overview with factory behavior.
+
+**Upload buttons** then posts a JSON report to a small [Cloudflare Worker](worker/), which files it
+as a GitHub issue labeled `device-report`. The GitHub token only exists in the worker, so the app
+needs no account. The worker checks size and structure, accepts at most 5 requests per minute and
+IP address and one report per TV model and IP address per day (it stores only a SHA-256 hash of
+both, for 24 hours), and renders all report text as code so it cannot add links or mentions.
+
+The [report-to-profile workflow](.github/workflows/report-to-profile.yml) then extends the profile
+the app used or detected, or creates a new one, and opens a pull request; if the profile already
+covers every mapped button it just comments on the issue.
 
 A report contains:
 
 - device: brand, manufacturer, model, product, hardware, Android version
 - active and detected profile, app version, press options (on/off)
-- external input devices (name, vendor and product ID)
-- per button: keycode, type, own name, scan code and remote (for taught buttons), and whether it
-  comes from the profile
+- input devices that send keys (name, vendor and product ID)
+- the button mapping: type, keycode, scan code and the remote each button came from
+- the buttons known to the app (keycode, type, own name)
 - the optional note
 
 It does not contain assignments, installed apps or the Home Assistant address.
@@ -159,13 +190,15 @@ To run your own worker:
 ```sh
 cd worker
 npx wrangler login
+npx wrangler kv namespace create SEEN  # put the printed id into wrangler.toml
 npx wrangler secret put GITHUB_TOKEN   # fine-grained token: your repo, Issues read/write
 npx wrangler deploy                    # prints https://tv-remote-buttons.<account>.workers.dev
 ```
 
 Set `REPO` in `worker/wrangler.toml` to your repository and `Report.URL` in
-[`Report.java`](src/local/chiq/keys/Report.java) to `<worker URL>/report`, then create the label:
-`gh label create device-report`.
+[`Report.java`](src/local/chiq/keys/Report.java) to `<worker URL>/report`, create the label
+(`gh label create device-report`) and allow GitHub Actions to create pull requests in the
+repository settings.
 
 ## Home Assistant
 
@@ -209,6 +242,8 @@ adb shell "$R --ei key 192 --es target 'intent:#Intent;action=android.settings.W
 ```
 
 Add `--ez keep true` to change only what is not configured yet, which is useful in setup scripts.
+`--ez export true` returns all settings as base64 JSON, and `--es import <base64>` restores them,
+for example before reinstalling the app.
 
 Target notation:
 

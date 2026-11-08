@@ -21,9 +21,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Device report: TV model, remote(s) and the known buttons (keycodes, types, scan codes), uploaded
- * anonymously so that new device profiles can be added. The report deliberately contains no
- * targets/assignments, installed apps or Home Assistant address.
+ * Device report: TV model, remote(s), the button mapping made in the wizard (which button is
+ * Netflix, YouTube, ...) and the known buttons, uploaded anonymously so that new device profiles can
+ * be added. The report deliberately contains no targets/assignments, installed apps or Home
+ * Assistant address. One report per TV and day (enforced by the worker, remembered here).
  *
  * Reports go to a Cloudflare Worker (see worker/) that files them as GitHub issues; no account or
  * token is needed on the device.
@@ -34,7 +35,57 @@ final class Report {
 
     private Report() {}
 
+    /** Error value passed to Result when this TV already sent a report today. */
+    static final String DAILY_LIMIT = "daily_limit";
+
     interface Result { void done(int issue, String url, String error); }
+
+    // ---------------------------------------------------------------- mapping and daily limit
+
+    /** One mapped button: type, keycode, key name, scan code and the remote it came from. */
+    static JSONObject mappingEntry(Context c, String type, int code) {
+        try {
+            JSONObject o = new JSONObject().put("type", type).put("keycode", code).put("key", KeyMap.label(code));
+            int scan = KeyMap.prefs(c).getInt("s" + code, -1);
+            if (scan >= 0) o.put("scan", "0x" + Integer.toHexString(scan));
+            String src = KeyMap.prefs(c).getString("r" + code, null);
+            if (src != null) {
+                String[] p = src.split("\\|", -1);
+                o.put("remote", p[0]);
+                if (p.length >= 3) {
+                    o.put("vendor", String.format("0x%04x", Integer.parseInt(p[1])));
+                    o.put("product", String.format("0x%04x", Integer.parseInt(p[2])));
+                }
+            }
+            return o;
+        } catch (JSONException | NumberFormatException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    static void saveMapping(Context c, JSONArray mapping) {
+        KeyMap.prefs(c).edit().putString("mapping", mapping.toString()).apply();
+    }
+
+    /** Saved button mapping, or null if the wizard has not been completed. */
+    static JSONArray mapping(Context c) {
+        String s = KeyMap.prefs(c).getString("mapping", null);
+        if (s == null) return null;
+        try {
+            JSONArray a = new JSONArray(s);
+            return a.length() > 0 ? a : null;
+        } catch (JSONException e) {
+            return null;
+        }
+    }
+
+    private static String today() {
+        return new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.ROOT).format(new java.util.Date());
+    }
+
+    static boolean uploadedToday(Context c) {
+        return today().equals(KeyMap.prefs(c).getString("uploaded_day", null));
+    }
 
     static boolean enabled() { return !URL.isEmpty(); }
 
@@ -55,7 +106,7 @@ final class Report {
 
             Profiles.Profile p = KeyMap.profile(c);
             r.put("profile", p != null ? p.id : JSONObject.NULL);
-            Profiles.Profile detected = Profiles.detect();
+            Profiles.Profile detected = Profiles.detect(c);
             r.put("detected", detected != null ? detected.id : JSONObject.NULL);
 
             JSONArray remotes = new JSONArray();
@@ -79,6 +130,8 @@ final class Report {
                 keys.put(k);
             }
             r.put("keys", keys);
+            JSONArray mapping = mapping(c);
+            r.put("mapping", mapping != null ? mapping : new JSONArray());
             r.put("press", new JSONObject()
                     .put("double", KeyMap.enabled(c, KeyMap.DOUBLE)).put("hold", KeyMap.enabled(c, KeyMap.LONG)));
             if (note != null && !note.trim().isEmpty()) r.put("note", note.trim());
@@ -108,7 +161,8 @@ final class Report {
     }
 
     /** Uploads the report in the background; the result is delivered on the main thread. */
-    static void upload(JSONObject report, Result result) {
+    static void upload(Context ctx, JSONObject report, Result result) {
+        Context app = ctx.getApplicationContext();
         Handler main = new Handler(Looper.getMainLooper());
         new Thread(() -> {
             int issue = 0;
@@ -128,8 +182,12 @@ final class Report {
                 InputStream in = rc < 400 ? con.getInputStream() : con.getErrorStream();
                 String body = in == null ? "" : new String(readAll(in), StandardCharsets.UTF_8);
                 JSONObject res = body.isEmpty() ? new JSONObject() : new JSONObject(body);
-                if (rc >= 400) error = res.optString("error", "HTTP " + rc);
+                if (rc == 429 && DAILY_LIMIT.equals(res.optString("code"))) error = DAILY_LIMIT;
+                else if (rc >= 400) error = res.optString("error", "HTTP " + rc);
                 else { issue = res.optInt("issue"); url = res.optString("url", null); }
+                if (error == null || DAILY_LIMIT.equals(error)) {
+                    KeyMap.prefs(app).edit().putString("uploaded_day", today()).apply();
+                }
             } catch (Exception e) {
                 error = e.getClass().getSimpleName();
             } finally {

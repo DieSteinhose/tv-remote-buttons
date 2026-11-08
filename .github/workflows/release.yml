@@ -1,0 +1,62 @@
+# Builds the APK for a version tag (v1.2, ...), signs it with the release key stored in the
+# repository secrets and publishes it as a GitHub release. The in-app updater downloads it from
+# there, so every release must be signed with the same key.
+#
+# Secrets: SIGNING_KEYSTORE_B64 (base64 of the .jks), SIGNING_KEY_ALIAS, SIGNING_KEYSTORE_PASS
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+concurrency: release
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Check that the tag matches versionName
+        run: |
+          version=$(sed -n 's/.*android:versionName="\([^"]*\)".*/\1/p' AndroidManifest.xml)
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match versionName $version"; exit 1
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+      - name: Install build tools
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq librsvg2-bin imagemagick >/dev/null
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-34" "build-tools;34.0.0" >/dev/null
+      - name: Set up signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.SIGNING_KEYSTORE_B64 }}
+          KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          KEYSTORE_PASS: ${{ secrets.SIGNING_KEYSTORE_PASS }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ]; then echo "::error::Signing secrets missing"; exit 1; fi
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          {
+            echo "KEYSTORE='$RUNNER_TEMP/release.jks'"
+            echo "KEY_ALIAS='$KEY_ALIAS'"
+            echo "KEYSTORE_PASS='$KEYSTORE_PASS'"
+          } > signing.env
+      - name: Build
+        run: ./build.sh
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          rm -f signing.env "$RUNNER_TEMP/release.jks"
+          asset="build/tv-remote-buttons-$VERSION.apk"
+          cp build/tv-remote-buttons.apk "$asset"
+          git fetch -q --force origin "refs/tags/$GITHUB_REF_NAME:refs/tags/$GITHUB_REF_NAME"
+          notes=$(git tag -l --format='%(contents)' "$GITHUB_REF_NAME")
+          if [ -n "$notes" ]; then set -- --notes "$notes"; else set -- --generate-notes; fi
+          gh release create "$GITHUB_REF_NAME" "$asset" --title "TV Remote Buttons $VERSION" "$@"

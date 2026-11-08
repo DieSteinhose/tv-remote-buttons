@@ -20,6 +20,9 @@ public class KeyService extends AccessibilityService {
     /** Set by the settings screen: capture the next key instead of running it. */
     interface Capture { void onKey(int keyCode); }
     static volatile Capture capture;
+    /** Keep capturing after a key (mapping wizard); keys within 400 ms of a capture are ignored. */
+    static volatile boolean captureAll;
+    private long lastCapture;
     static volatile boolean running;
     private int capturedCode = -1;
 
@@ -31,6 +34,7 @@ public class KeyService extends AccessibilityService {
     @Override
     protected void onServiceConnected() {
         running = true;
+        Profiles.refresh(this, false, null);
         Log.i(KeyMap.TAG, "Service connected");
     }
 
@@ -54,12 +58,17 @@ public class KeyService extends AccessibilityService {
 
         Capture cap = capture;
         if (cap != null && down) {
-            capture = null;
+            boolean all = captureAll;
+            // repeats, and trailing markers right after a captured key (e.g. the CHiQ release marker)
+            if (e.getRepeatCount() > 0 || (all && e.getEventTime() - lastCapture < 400)) return true;
+            if (!all) capture = null;
+            lastCapture = e.getEventTime();
             capturedCode = code;
             KeyMap.rememberSource(this, e);
             cap.onKey(code);
             return true;
         }
+        if (cap != null && captureAll && code != capturedCode) return true; // stray UP while mapping
         if (code == capturedCode) { // swallow the rest of the captured key (repeats, UP)
             if (!down) capturedCode = -1;
             return true;

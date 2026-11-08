@@ -13,3 +13,9 @@ REPO = "DieSteinhose/tv-remote-buttons"
 name = "LIMITER"
 namespace_id = "1001"
 simple = { limit = 5, period = 60 }
+
+# One report per TV and IP address per day: stores a SHA-256 hash of (IP, TV model) for 24 hours,
+# never the address itself
+[[kv_namespaces]]
+binding = "SEEN"
+id = "56f89fe22d3b4429b7e56439c2c23a24"

@@ -1,0 +1,40 @@
+# Checks profiles.json and the worker, and builds the APK (signed with a throwaway key) on every
+# push and pull request. The APK is kept as a workflow artifact for testing.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check profiles.json
+        run: python3 .github/scripts/check_profiles.py
+      - name: Check worker syntax
+        run: node --check worker/src/index.js
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Install build tools
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq librsvg2-bin imagemagick >/dev/null
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-34" "build-tools;34.0.0" >/dev/null
+      - name: Build
+        run: ./build.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tv-remote-buttons-unsigned-test
+          path: build/tv-remote-buttons.apk

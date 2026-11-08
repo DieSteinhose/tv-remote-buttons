@@ -58,8 +58,6 @@
     <string name="type_media">USB / Medien</string>
     <string name="type_free">Freie Taste</string>
     <string name="type_other">Andere Taste</string>
-    <string name="key_guide2">Guide (2. Live-TV-Taste)</string>
-    <string name="key_usb">USB</string>
 
     <string name="button_eyebrow">Taste · %1$s</string>
     <string name="now">Jetzt: %1$s</string>
@@ -188,7 +186,7 @@
     <string name="section_help">Mithelfen</string>
     <string name="upload_row">Tasten hochladen</string>
     <string name="upload_row_sub">Hilft, ein Profil für diesen Fernseher anzulegen – ohne Konto</string>
-    <string name="upload_body">Schick die Tasten deiner Fernbedienung an den Entwickler, damit die App diesen Fernseher und seine Fernbedienung künftig erkennt.\n\nGesendet werden: Fernsehermodell und Android-Version, der Name der Fernbedienung und deine Tasten (Keycodes, Typen, eigene Namen). Nicht gesendet werden: deine Apps, Belegungen und Adressen.\n\nDie Meldung erscheint öffentlich als Issue auf GitHub.</string>
+    <string name="upload_body">Schick die Tasten deiner Fernbedienung an den Entwickler, damit die App diesen Fernseher und seine Fernbedienung künftig erkennt. Vorher ordnest du die Tasten zu: welche Taste Netflix, YouTube, Live TV usw. ist.\n\nGesendet werden: Fernsehermodell und Android-Version, deine Fernbedienungen (Name, Hersteller- und Produkt-ID) und die Tastenzuordnung (Keycodes, Typen, eigene Namen). Nicht gesendet werden: deine Apps, Belegungen und Adressen.\n\nDie Meldung erscheint öffentlich als Issue auf GitHub. Eine Meldung pro Fernseher und Tag.</string>
     <string name="section_sent">Was gesendet wird</string>
     <string name="upload_remote_none">Keine Fernbedienung gefunden</string>
     <string name="upload_keys">%1$d Tasten</string>
@@ -200,4 +198,34 @@
     <string name="upload_done">Danke! Meldung #%1$d wurde angelegt.</string>
     <string name="upload_failed">Hochladen fehlgeschlagen (%1$s)</string>
     <string name="upload_not_configured">Hochladen ist in dieser Version nicht eingerichtet.</string>
+    <string name="section_mapping">Tastenzuordnung</string>
+    <string name="map_start">Tasten zuordnen</string>
+    <string name="map_redo">Neu zuordnen</string>
+    <string name="map_status">%1$d Tasten zugeordnet · %2$s</string>
+    <string name="map_status_none">Noch nicht zugeordnet – nötig vor dem Hochladen</string>
+    <string name="map_step">Tasten zuordnen · Schritt %1$d von %2$d</string>
+    <string name="map_press">Drück „%1$s“</string>
+    <string name="map_press_body">Drück die Taste deiner Fernbedienung, die so beschriftet ist oder dieses Symbol zeigt. Hat deine Fernbedienung keine solche Taste, wähle „Gibt es nicht“.</string>
+    <string name="map_waiting">Warte auf einen Tastendruck …</string>
+    <string name="map_got">Erkannt: %1$s</string>
+    <string name="map_taken">Diese Taste ist schon „%1$s“.</string>
+    <string name="map_skip">Gibt es nicht</string>
+    <string name="map_back">Zurück</string>
+    <string name="map_more_title">Weitere Sondertasten?</string>
+    <string name="map_more_body">Drück jetzt weitere besondere Tasten, z. B. Farbtasten, Mikrofon, Sender oder Untertitel. Jede wird erfasst. Zum Abschluss „Fertig“.</string>
+    <string name="map_more_count">%1$d weitere Tasten erfasst</string>
+    <string name="map_done">Fertig</string>
+    <string name="upload_today">Heute schon hochgeladen – morgen wieder möglich.</string>
+
+    <string name="section_app">App</string>
+    <string name="app_version">Version %1$s</string>
+    <string name="update_checking">Suche nach Updates …</string>
+    <string name="update_none">Aktuell</string>
+    <string name="update_available">Update auf %1$s verfügbar – auswählen zum Installieren</string>
+    <string name="update_error">Updates konnten nicht geprüft werden (%1$s)</string>
+    <string name="update_downloading">Update wird geladen … %1$d %%</string>
+    <string name="update_installing">Wird installiert …</string>
+    <string name="update_permission">Erlaube „Unbekannte Apps installieren“ für TV Remote Buttons und wähle das Update dann noch einmal.</string>
+    <string name="update_failed">Update fehlgeschlagen (%1$s)</string>
+    <string name="b_update">Update</string>
 </resources>

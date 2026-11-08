@@ -19,6 +19,9 @@ import android.util.Log;
  *   Timing:          --ei double_ms 350 --ei long_ms 500
  *   Button type:     am broadcast -n local.chiq.keys/.ConfigReceiver --ei key 192 --es type free
  *   Name:            am broadcast -n local.chiq.keys/.ConfigReceiver --ei key 192 --es name "My button"
+ *   Backup:          am broadcast -n local.chiq.keys/.ConfigReceiver --ez export true
+ *                      (result data: all settings as base64 JSON)
+ *   Restore:         am broadcast -n local.chiq.keys/.ConfigReceiver --es import <base64 from export>
  *   Intent:          am broadcast -n local.chiq.keys/.ConfigReceiver --ei key 192 \
  *                      --es target "'intent:#Intent;action=android.settings.WIFI_SETTINGS;end'"
  * Targets as in KeyMap: package, package/class, intent:..., scheme:..., @livetv, @home, @epg, @ha,
@@ -27,10 +30,19 @@ import android.util.Log;
 public class ConfigReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context c, Intent i) {
+        if (i.getBooleanExtra("export", false)) {
+            setResultData(exportPrefs(c));
+            return;
+        }
+        String imp = i.getStringExtra("import");
+        if (imp != null) {
+            setResultData(importPrefs(c, imp));
+            return;
+        }
         boolean keep = i.getBooleanExtra("keep", false);
         String profile = i.getStringExtra("profile");
         if (profile != null && !(keep && KeyMap.profileChosen(c))) {
-            Profiles.Profile det = Profiles.detect();
+            Profiles.Profile det = Profiles.detect(c);
             KeyMap.setProfile(c, "auto".equals(profile) ? (det != null ? det.id : "none") : profile);
         }
         SharedPreferences.Editor ed = KeyMap.prefs(c).edit();
@@ -82,5 +94,46 @@ public class ConfigReceiver extends BroadcastReceiver {
             }
         }
         setResultData(sb.toString());
+    }
+
+    /** All settings as base64 JSON: {"name": {"t": "s|i|l|b", "v": value}, ...}. */
+    private static String exportPrefs(Context c) {
+        try {
+            org.json.JSONObject o = new org.json.JSONObject();
+            for (java.util.Map.Entry<String, ?> e : KeyMap.prefs(c).getAll().entrySet()) {
+                Object v = e.getValue();
+                String t = v instanceof String ? "s" : v instanceof Integer ? "i" : v instanceof Long ? "l"
+                        : v instanceof Boolean ? "b" : null;
+                if (t != null) o.put(e.getKey(), new org.json.JSONObject().put("t", t).put("v", v));
+            }
+            return android.util.Base64.encodeToString(o.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                    android.util.Base64.NO_WRAP);
+        } catch (org.json.JSONException e) {
+            return "error: " + e;
+        }
+    }
+
+    /** Replaces all settings with an export (see exportPrefs). */
+    private static String importPrefs(Context c, String b64) {
+        try {
+            org.json.JSONObject o = new org.json.JSONObject(new String(android.util.Base64.decode(b64, 0),
+                    java.nio.charset.StandardCharsets.UTF_8));
+            SharedPreferences.Editor ed = KeyMap.prefs(c).edit().clear();
+            for (java.util.Iterator<String> it = o.keys(); it.hasNext(); ) {
+                String k = it.next();
+                org.json.JSONObject e = o.getJSONObject(k);
+                switch (e.getString("t")) {
+                    case "s": ed.putString(k, e.getString("v")); break;
+                    case "i": ed.putInt(k, e.getInt("v")); break;
+                    case "l": ed.putLong(k, e.getLong("v")); break;
+                    case "b": ed.putBoolean(k, e.getBoolean("v")); break;
+                    default: break;
+                }
+            }
+            ed.commit();
+            return "imported " + o.length() + " settings";
+        } catch (Exception e) {
+            return "error: " + e;
+        }
     }
 }

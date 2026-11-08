@@ -63,8 +63,6 @@
     <string name="type_media">USB / Media</string>
     <string name="type_free">Custom button</string>
     <string name="type_other">Other button</string>
-    <string name="key_guide2">Guide (2nd Live TV button)</string>
-    <string name="key_usb">USB</string>
 
     <!-- Assignment -->
     <string name="button_eyebrow">Button · %1$s</string>
@@ -201,7 +199,7 @@
     <string name="section_help">Help improve</string>
     <string name="upload_row">Upload buttons</string>
     <string name="upload_row_sub">Helps to add a profile for this TV – no account needed</string>
-    <string name="upload_body">Send the buttons of your remote to the developer so that the app can recognize this TV and its remote in the future.\n\nSent: TV model and Android version, the name of the remote and your buttons (keycodes, types, own names). Not sent: your apps, assignments or addresses.\n\nThe report becomes a public issue on GitHub.</string>
+    <string name="upload_body">Send the buttons of your remote to the developer so that the app can recognize this TV and its remote in the future. First you map the buttons: which button is Netflix, YouTube, Live TV and so on.\n\nSent: TV model and Android version, your remotes (name, vendor and product ID) and the button mapping (keycodes, types, own names). Not sent: your apps, assignments or addresses.\n\nThe report becomes a public issue on GitHub. One report per TV and day.</string>
     <string name="section_sent">What is sent</string>
     <string name="upload_remote_none">No remote found</string>
     <string name="upload_keys">%1$d buttons</string>
@@ -213,4 +211,36 @@
     <string name="upload_done">Thank you! Report #%1$d was created.</string>
     <string name="upload_failed">Upload failed (%1$s)</string>
     <string name="upload_not_configured">Uploading is not set up in this build.</string>
+    <!-- Button mapping wizard (before uploading) -->
+    <string name="section_mapping">Button mapping</string>
+    <string name="map_start">Map buttons</string>
+    <string name="map_redo">Map buttons again</string>
+    <string name="map_status">%1$d buttons mapped · %2$s</string>
+    <string name="map_status_none">Not mapped yet – needed before uploading</string>
+    <string name="map_step">Map buttons · step %1$d of %2$d</string>
+    <string name="map_press">Press “%1$s”</string>
+    <string name="map_press_body">Press the button on your remote that is labeled like this or shows this symbol. If your remote has no such button, choose “Not there”.</string>
+    <string name="map_waiting">Waiting for a button …</string>
+    <string name="map_got">Recognized: %1$s</string>
+    <string name="map_taken">This button is already “%1$s”.</string>
+    <string name="map_skip">Not there</string>
+    <string name="map_back">Previous</string>
+    <string name="map_more_title">More special buttons?</string>
+    <string name="map_more_body">Now press any other special buttons, e.g. color buttons, microphone, channel or subtitles. Each one is recorded. Choose “Done” to finish.</string>
+    <string name="map_more_count">%1$d more buttons recorded</string>
+    <string name="map_done">Done</string>
+    <string name="upload_today">Already uploaded today – possible again tomorrow.</string>
+
+    <!-- In-app updater -->
+    <string name="section_app">App</string>
+    <string name="app_version">Version %1$s</string>
+    <string name="update_checking">Checking for updates …</string>
+    <string name="update_none">Up to date</string>
+    <string name="update_available">Update to %1$s available – select to install</string>
+    <string name="update_error">Could not check for updates (%1$s)</string>
+    <string name="update_downloading">Downloading update … %1$d %%</string>
+    <string name="update_installing">Installing …</string>
+    <string name="update_permission">Allow “Install unknown apps” for TV Remote Buttons, then select the update again.</string>
+    <string name="update_failed">Update failed (%1$s)</string>
+    <string name="b_update">Update</string>
 </resources>
