@@ -64,6 +64,15 @@ KEYSTORE_PASS=secret
 Keep using the same key: Android only installs an update if it is signed with the key of the
 installed app.
 
+### Releases
+
+Signed APKs are published under Releases. To publish one, raise `android:versionCode` and
+`android:versionName` in `AndroidManifest.xml`, commit, then run:
+
+```sh
+./release.sh ["release notes"]   # builds, tags v<versionName>, uploads the APK
+```
+
 ## Install and enable
 
 ```sh
