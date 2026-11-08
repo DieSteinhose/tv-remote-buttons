@@ -2,11 +2,13 @@
 
 - Code comments, log messages, README and workflows are in English. UI texts exist in English
   (`res/values`) and German (`res/values-de`); keep both in sync.
-- Device profiles live in `profiles/profiles.json` (loaded by the app at runtime from GitHub, a copy
-  is bundled into the APK). Check with `python3 .github/scripts/check_profiles.py` (`--fix` formats).
-  New TVs need a profile change, not a new app version. Every profile needs a section in
-  `DEVICES.md` (the supported-devices list, linked from the README); the check enforces it.
-- Device reports (issues labeled `device-report`) are reviewed by `report-agent.yml` (Claude,
+- Device profiles live in `profiles/devices.json` (schema 2: remote profiles and TV profiles, combined
+  by the app; loaded at runtime from GitHub, a copy is bundled into the APK). `profiles/profiles.json`
+  (schema 1, for app versions up to 1.6) is generated from it - never edit it by hand. Check with
+  `python3 .github/scripts/check_profiles.py` (`--fix` formats and regenerates). New TVs and remotes
+  need a profile change, not a new app version. Every profile needs a `### <id>` section in
+  `DEVICES.md` (the supported-devices list); the check enforces it.
+- Device reports (issues labeled `device-report`) are reviewed by `report-agent.yml` (Claude Haiku,
   instructions in `.github/agent/profile-agent.md`), which proposes profile pull requests.
 - Build with `./build.sh`. Local `signing.env` (git-ignored) points to the release key
   `~/.android/tv-remote-buttons.jks`, the same key as the GitHub secrets `SIGNING_*`. Never commit

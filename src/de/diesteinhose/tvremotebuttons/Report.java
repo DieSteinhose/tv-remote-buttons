@@ -106,9 +106,12 @@ final class Report {
                     .put("tvModel", Profiles.tvModel() != null ? Profiles.tvModel() : JSONObject.NULL));
 
             Profiles.Profile p = KeyMap.profile(c);
-            r.put("profile", p != null ? p.id : JSONObject.NULL);
-            Profiles.Profile detected = Profiles.detect(c);
-            r.put("detected", detected != null ? detected.id : JSONObject.NULL);
+            r.put("remoteProfile", p != null && p.remote != null ? p.remote.id : JSONObject.NULL);
+            r.put("tvProfile", p != null && p.tv != null ? p.tv.id : JSONObject.NULL);
+            Profiles.Tv tv = Profiles.detectTv(c);
+            Profiles.Remote rem = Profiles.detectRemote(c, tv);
+            r.put("detectedRemote", rem != null ? rem.id : JSONObject.NULL);
+            r.put("detectedTv", tv != null ? tv.id : JSONObject.NULL);
 
             JSONArray remotes = new JSONArray();
             for (String[] d : remotes(c)) {

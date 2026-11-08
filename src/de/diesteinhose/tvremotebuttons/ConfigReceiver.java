@@ -12,7 +12,8 @@ import android.util.Log;
  *   Default:         am broadcast -n de.diesteinhose.tvremotebuttons/.ConfigReceiver --ei key 192 --es target default
  *   HA address:      am broadcast -n de.diesteinhose.tvremotebuttons/.ConfigReceiver --es ha_url http://homeassistant.local:8123
  *   Trigger button:  am broadcast -n de.diesteinhose.tvremotebuttons/.ConfigReceiver --ei test 192
- *   Profile:         am broadcast -n de.diesteinhose.tvremotebuttons/.ConfigReceiver --es profile chiq_mt58   (or none, auto)
+ *   Profiles:        am broadcast -n de.diesteinhose.tvremotebuttons/.ConfigReceiver --es profile auto   (or none, or an id)
+ *                    ... --es remote chiq_tvc0gwbt --es tv chiq_mt58   (each also auto or none)
  *   Only if not set yet (for setup scripts): add --ez keep true
  *   Double/hold:     add --es action double (or long); applies to target and test
  *   Global on/off:   --ez double_on true --ez long_on true   (default: both off)
@@ -41,9 +42,18 @@ public class ConfigReceiver extends BroadcastReceiver {
         }
         boolean keep = i.getBooleanExtra("keep", false);
         String profile = i.getStringExtra("profile");
-        if (profile != null && !(keep && KeyMap.profileChosen(c))) {
-            Profiles.Profile det = Profiles.detect(c);
-            KeyMap.setProfile(c, "auto".equals(profile) ? (det != null ? det.id : "none") : profile);
+        if (profile != null && !(keep && KeyMap.profileChosen(c))) KeyMap.setProfileById(c, profile);
+        String remote = i.getStringExtra("remote"), tv = i.getStringExtra("tv");
+        if ((remote != null || tv != null) && !(keep && KeyMap.profileChosen(c))) {
+            if ("auto".equals(remote)) {
+                Profiles.Remote r = Profiles.detectRemote(c, Profiles.detectTv(c));
+                remote = r != null ? r.id : "none";
+            }
+            if ("auto".equals(tv)) {
+                Profiles.Tv t = Profiles.detectTv(c);
+                tv = t != null ? t.id : "none";
+            }
+            KeyMap.setProfiles(c, remote, tv);
         }
         SharedPreferences.Editor ed = KeyMap.prefs(c).edit();
         String ha = i.getStringExtra("ha_url");
@@ -77,8 +87,10 @@ public class ConfigReceiver extends BroadcastReceiver {
             if (t != null) KeyMap.run(c, t, test, action, false);
         }
         Profiles.Profile p = KeyMap.profile(c);
-        StringBuilder sb = new StringBuilder("device=" + Profiles.deviceName() + "\nprofile=" + (p != null ? p.id
-                : KeyMap.profileChosen(c) ? "none" : "(not chosen yet)"));
+        boolean chosen = KeyMap.profileChosen(c);
+        StringBuilder sb = new StringBuilder("device=" + Profiles.deviceName()
+                + "\nremote=" + (p != null && p.remote != null ? p.remote.id : chosen ? "none" : "(not chosen yet)")
+                + "\ntv=" + (p != null && p.tv != null ? p.tv.id : chosen ? "none" : "(not chosen yet)"));
         sb.append("\nha_url=").append(KeyMap.haUrl(c));
         sb.append("\ndouble ").append(KeyMap.enabled(c, KeyMap.DOUBLE) ? "on " : "off ").append(KeyMap.doubleMs(c))
           .append(" ms, long ").append(KeyMap.enabled(c, KeyMap.LONG) ? "on " : "off ").append(KeyMap.longMs(c)).append(" ms");

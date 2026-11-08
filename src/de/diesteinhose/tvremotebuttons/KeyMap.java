@@ -103,16 +103,72 @@ final class KeyMap {
         return c.getSharedPreferences("keys", Context.MODE_PRIVATE);
     }
 
-    /** Has a profile been chosen yet (including "none")? */
-    static boolean profileChosen(Context c) { return prefs(c).contains("profile"); }
-
-    /** Active profile or null. */
-    static Profiles.Profile profile(Context c) {
-        return Profiles.byId(c, prefs(c).getString("profile", null));
+    /** Have the profiles been chosen yet (including "none")? */
+    static boolean profileChosen(Context c) {
+        migrate(c);
+        return prefs(c).contains("remote");
     }
 
-    static void setProfile(Context c, String id) {
-        prefs(c).edit().putString("profile", Profiles.byId(c, id) != null ? id : "none").apply();
+    private static Profiles.Profile cached;
+    private static String cachedKey;
+    private static Profiles.Db cachedDb;
+
+    /** Active combination of remote and TV profile, or null if neither is set. */
+    static Profiles.Profile profile(Context c) {
+        migrate(c);
+        SharedPreferences p = prefs(c);
+        String key = p.getString("remote", null) + "|" + p.getString("tv", null);
+        Profiles.Db db = Profiles.db(c);
+        synchronized (KeyMap.class) {
+            if (key.equals(cachedKey) && db == cachedDb) return cached;
+            Profiles.Remote r = Profiles.remote(c, p.getString("remote", null));
+            Profiles.Tv t = Profiles.tv(c, p.getString("tv", null));
+            cached = r == null && t == null ? null : new Profiles.Profile(r, t);
+            cachedKey = key;
+            cachedDb = db;
+            return cached;
+        }
+    }
+
+    /** Sets the remote and/or TV profile (null = leave unchanged, unknown id = "none"). */
+    static void setProfiles(Context c, String remote, String tv) {
+        SharedPreferences.Editor ed = prefs(c).edit();
+        if (remote != null) ed.putString("remote", Profiles.remote(c, remote) != null ? remote : "none");
+        if (tv != null) ed.putString("tv", Profiles.tv(c, tv) != null ? tv : "none");
+        ed.apply();
+    }
+
+    /** Uses the detected remote and TV profiles ("none" where nothing matches). */
+    static void setDetected(Context c) {
+        Profiles.Tv tv = Profiles.detectTv(c);
+        Profiles.Remote r = Profiles.detectRemote(c, tv);
+        setProfiles(c, r != null ? r.id : "none", tv != null ? tv.id : "none");
+    }
+
+    /**
+     * Sets profiles by an id: a remote or TV profile id, an old schema-1 profile id (both parts),
+     * "auto" (detected) or "none".
+     */
+    static void setProfileById(Context c, String id) {
+        if ("auto".equals(id)) { setDetected(c); return; }
+        if ("none".equals(id)) { setProfiles(c, "none", "none"); return; }
+        String[] m = Profiles.legacy(c, id);
+        if (m[0] != null || m[1] != null) { // old combined profile: both parts
+            setProfiles(c, m[0] != null ? m[0] : "none", m[1] != null ? m[1] : "none");
+            return;
+        }
+        if (Profiles.remote(c, id) != null) setProfiles(c, id, null);
+        else if (Profiles.tv(c, id) != null) setProfiles(c, null, id);
+        else setProfiles(c, "none", "none");
+    }
+
+    /** Replaces the profile choice of app versions up to 1.6 ("profile") by remote and TV profile. */
+    private static void migrate(Context c) {
+        SharedPreferences p = prefs(c);
+        if (!p.contains("profile")) return;
+        String old = p.getString("profile", "none");
+        p.edit().remove("profile").apply();
+        if (!p.contains("remote")) setProfileById(c, old);
     }
 
     /** Keys that are never intercepted: basic functions, navigation and profile-specific keys. */

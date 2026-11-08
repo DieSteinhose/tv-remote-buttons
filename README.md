@@ -26,13 +26,14 @@ navigation. Its UI is available in English and German.
   second press.
 - **Device profiles from this repository.** On first start the app detects the TV and its remote and
   recommends a matching profile that already knows the buttons. Profiles are downloaded from
-  [`profiles/profiles.json`](profiles/profiles.json) at startup, so new TVs need no new app version.
+  [`profiles/devices.json`](profiles/devices.json) at startup, so new TVs and remotes need no new
+  app version. Remotes and TVs have separate profiles, so a known remote also works on other TVs.
   See **[supported devices](DEVICES.md)**.
 - **Teaching buttons.** Press the button, then pick its type (Live TV, Netflix, YouTube, Settings,
   Input, …). The type sets the name and suggests a target.
 - **Upload buttons.** Press the special buttons of your remote in any order and pick what is printed
   on each, then send the mapping (TV model, remote, keycodes, types) without an account. Each report
-  becomes a public issue, and a workflow turns it into a pull request for `profiles.json`. Apps and
+  becomes a public issue, and an agent turns it into a pull request for the profiles. Apps and
   assignments are never sent. One report per TV and day.
 - **In-app updates** from the GitHub releases (Android asks you to confirm the installation).
 - **Configuration via adb** for setup scripts (see below).
@@ -76,7 +77,7 @@ installed app. Builds with another key cannot update an installed release.
 
 ### Releases and CI
 
-- [`ci.yml`](.github/workflows/ci.yml) checks `profiles.json` and the worker and builds the APK on
+- [`ci.yml`](.github/workflows/ci.yml) checks the profiles and the worker and builds the APK on
   every push and pull request.
 - [`release.yml`](.github/workflows/release.yml) builds, signs and publishes a release for every
   `v*` tag. To release, raise `android:versionCode` and `android:versionName` in
@@ -87,9 +88,7 @@ installed app. Builds with another key cannot update an installed release.
   ```
 
 - [`report-agent.yml`](.github/workflows/report-agent.yml) reviews device reports with Claude and
-  proposes profile pull requests (see below);
-  [`report-to-profile.yml`](.github/workflows/report-to-profile.yml) is a deterministic fallback
-  that can be run by hand.
+  proposes profile pull requests (see below).
 
 ## Install and enable
 
@@ -117,8 +116,10 @@ this one with a `:` separator instead.
 - **Add button:** press the new button on the remote, then pick its type.
 - **Press options:** switch *press twice* and *hold* on or off and choose their timing
   (250/350/500 ms and 400/500/800/1000 ms).
-- **Device profile:** switch or remove the profile, or load the latest profiles from GitHub right
-  away with *Update profiles*. Your own assignments are kept.
+- **Remote & TV:** shows the detected remote and TV. *Identify remote* recognizes the remote from
+  one press of an app button (by the input device it comes from); a list and the TV choice are
+  there for the rare cases detection is wrong. *Update profiles* loads the latest profiles from
+  GitHub right away. Your own assignments are kept.
 - **Upload buttons:** map the buttons in a wizard, see exactly what would be sent, add an optional
   note and create a device report.
 - **App:** shows the version and installs updates from the latest GitHub release. The first update
@@ -130,27 +131,36 @@ single press a target of its own.
 
 ## Device profiles
 
-Profiles live in [`profiles/profiles.json`](profiles/profiles.json). The app loads them from GitHub
-at startup (at most once per hour, or right away with *Update profiles*), keeps the last download and falls back to the copy bundled in
-the APK. A profile defines:
+Profiles live in [`profiles/devices.json`](profiles/devices.json) and come in two layers, which the
+app combines:
 
-- how it matches: TV `brand` and `hardware` prefix, and/or `remotes` (input device name prefix,
-  vendor and product ID); a profile matching TV and remote wins over one matching only one of them,
-- the buttons of the remote: `key` (Android keycode name without `KEYCODE_`), `type` (see
-  [`ButtonTypes.java`](src/de/diesteinhose/tvremotebuttons/ButtonTypes.java)), `default` target and an optional
-  localized `name`,
-- the live TV activity (`liveTv`), whether the program guide can be opened (`epg`),
-- extra keys that must never be intercepted (`protect`),
-- optionally `minApp`, the lowest app versionCode that understands the profile.
+- **Remote profiles** (`remotes`) - the core: the buttons of a remote with `key` (Android keycode
+  name without `KEYCODE_`, or the number of a vendor key), `type` (see
+  [`ButtonTypes.java`](src/de/diesteinhose/tvremotebuttons/ButtonTypes.java)), `default` target and
+  an optional localized `name`; keys that must never be intercepted (`protect`); and how the remote
+  is recognized: `match.inputs` (input device name prefix, vendor and product ID), optionally
+  limited to some TV profiles (`match.tvs`) when the TV software maps its buttons differently.
+- **TV profiles** (`tvs`): recognized by `brand` and `hardware` prefix; the live TV activity
+  (`liveTv`), whether the program guide can be opened (`epg`), TV-level `protect` keys and the
+  remotes seen on this TV (`remotes`).
+
+So a remote keeps its buttons on another TV, and a TV keeps its live TV app with another remote.
+On first start the app shows the detected remote and TV. The remote can also be identified by
+pressing one of its app buttons; the TV rarely needs to be changed. Every entry may have `minApp`, the lowest app versionCode that understands it.
+
+The app loads the profiles from GitHub at startup (at most once per hour, or right away with
+*Update profiles*), keeps the last download and falls back to the copy bundled in the APK.
+[`profiles/profiles.json`](profiles/profiles.json) (schema 1) is generated from `devices.json` for
+app versions up to 1.6; do not edit it.
 
 Check changes with `python3 .github/scripts/check_profiles.py` (`--fix` applies the canonical
-formatting); CI runs the same check.
+formatting and regenerates `profiles.json`); CI runs the same check.
 
-The supported TVs, their buttons and quirks are listed in **[DEVICES.md](DEVICES.md)**; every
-profile needs a section there (the check enforces it).
+The supported remotes and TVs, their buttons and quirks are listed in
+**[DEVICES.md](DEVICES.md)**; every profile needs a section there (the check enforces it).
 
 The easiest way to add a TV is **Upload buttons** in the app: the report becomes an issue, the
-report agent opens a pull request that extends `profiles.json` and `DEVICES.md`, and after review
+report agent opens a pull request that extends `devices.json` and `DEVICES.md`, and after review
 and merge every app picks it up on its next start. Manual edits and pull requests are welcome too; to see keycodes:
 
 ```sh
@@ -174,14 +184,14 @@ both, for 24 hours), and renders all report text as code so it cannot add links 
 
 The [report agent](.github/workflows/report-agent.yml) then reviews the report with Claude
 (instructions: [`.github/agent/profile-agent.md`](.github/agent/profile-agent.md)): it checks the
-mapping for plausibility, extends the profile the app used or detected or creates a new one, updates
+mapping for plausibility, identifies the remote first and then the TV, extends the matching remote
+and TV profiles or creates new ones, updates
 [DEVICES.md](DEVICES.md) and opens a pull request with its assessment; if nothing needs to change it
 just comments on the issue. Because reports are anonymous input, the agent runs with a read-only
 token and no git credentials and may only edit those two files and run the profile check; a second
 job validates the result and opens the pull request. The agent needs the repository secret
 `CLAUDE_CODE_OAUTH_TOKEN` (`claude setup-token`, Claude Pro/Max) or can be switched to
-`ANTHROPIC_API_KEY`. The deterministic
-[report-to-profile workflow](.github/workflows/report-to-profile.yml) remains as a manual fallback.
+`ANTHROPIC_API_KEY`; it runs on Claude Haiku.
 
 A report contains:
 
@@ -243,7 +253,8 @@ Every broadcast prints the current configuration.
 ```sh
 R="am broadcast -n de.diesteinhose.tvremotebuttons/.ConfigReceiver"
 adb shell $R                                              # show configuration
-adb shell $R --es profile auto                            # detected profile (or an id, or none)
+adb shell $R --es profile auto                            # detected remote and TV profile (or none)
+adb shell $R --es remote chiq_tvc0gwbt --es tv chiq_mt58  # set them separately (each also auto or none)
 adb shell $R --ei key 247 --es target com.google.android.youtube.tv
 adb shell $R --ei key 192 --es action long --es target @ha
 adb shell $R --ei key 192 --es target default             # back to the profile default

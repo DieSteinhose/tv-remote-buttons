@@ -131,46 +131,86 @@ public class SettingsActivity extends Activity {
         left.addView(b);
 
         LinearLayout right = ui.column();
-        right.addView(ui.section(s(R.string.section_device)));
-        View dev = ui.row(null, R.drawable.ic_tv, C_OFF, Profiles.deviceName(),
-                "Android " + Build.VERSION.RELEASE + "  ·  " + Build.HARDWARE, null, 0, () -> { });
-        dev.setFocusable(false);
-        right.addView(dev);
+        Profiles.Tv tv = Profiles.detectTv(this);
+        Profiles.Remote rem = Profiles.detectRemote(this, tv);
+        View focus = null;
+        right.addView(ui.section(s(R.string.section_detected)));
+        right.addView(infoRow(R.drawable.ic_remote, rem != null ? rem.title : s(R.string.remote_unknown),
+                rem != null ? keyList(rem.keys) : s(R.string.remote_unknown_sub)));
+        right.addView(infoRow(R.drawable.ic_tv, tv != null ? tv.title : Profiles.deviceName(),
+                tv != null ? Profiles.deviceName() : s(R.string.tv_unknown_sub)));
 
-        Profiles.Profile p = Profiles.detect(this);
-        View focus;
-        if (p != null) {
-            right.addView(ui.section(s(R.string.section_recommended)));
-            focus = ui.row(null, R.drawable.ic_remote, ACCENT, s(R.string.use_profile),
-                    p.title + "  ·  " + keyList(p), s(R.string.badge_recommended), ACCENT, () -> chooseProfile(p.id));
-            right.addView(focus);
-            right.addView(ui.row(null, R.drawable.ic_star, C_OFF, s(R.string.start_without_profile),
-                    s(R.string.no_profile_sub), null, 0, () -> chooseProfile("none")));
-        } else {
-            right.addView(ui.note(s(R.string.no_match)));
-            focus = ui.row(null, R.drawable.ic_star, ACCENT, s(R.string.start_without_profile),
-                    s(R.string.no_profile_sub), null, 0, () -> chooseProfile("none"));
+        right.addView(ui.section(s(R.string.section_start)));
+        if (rem != null || tv != null) {
+            focus = ui.row(null, R.drawable.ic_add, ACCENT, s(R.string.use_detected), s(R.string.use_detected_sub),
+                    s(R.string.badge_recommended), ACCENT, () -> { KeyMap.setDetected(this); showMain(); });
             right.addView(focus);
         }
-        LinearLayout other = ui.row(null, R.drawable.ic_list, C_OFF, s(R.string.other_profile),
-                s(R.string.other_profile_sub), null, 0, () -> showProfiles(this::showWelcome));
-        ui.addChevron(other);
-        right.addView(other);
+        View identify = ui.row(null, R.drawable.ic_remote, rem != null ? C_SUB : ACCENT, s(R.string.identify_remote),
+                s(R.string.identify_remote_sub), null, 0, () -> showIdentify(this::showWelcome));
+        if (focus == null) focus = identify;
+        right.addView(identify);
+        right.addView(ui.row(null, R.drawable.ic_star, C_OFF, s(R.string.start_without_profile),
+                s(R.string.no_profile_sub), null, 0, () -> { KeyMap.setProfiles(this, "none", "none"); showMain(); }));
 
         ui.setScreen(left, right);
         ui.requestFocusLater(focus);
     }
 
+    /** Non-focusable information row. */
+    private View infoRow(int icon, String title, String sub) {
+        View r = ui.row(null, icon, C_OFF, title, sub, null, 0, () -> { });
+        r.setFocusable(false);
+        return r;
+    }
+
+    // ------------------------------------------------------------------ Remote and TV
+
+    /** Where "Back" goes from the remote & TV screen. */
+    private Runnable devicesBack;
+
+    /**
+     * Remote and TV: the active (or detected) remote and TV in plain words. The remote is changed
+     * by pressing one of its buttons (or from a list); the TV is detected and rarely changed.
+     */
     private void showProfiles(Runnable backTo) {
+        devicesBack = backTo;
         back = backTo;
         LinearLayout left = ui.column();
-        left.addView(ui.eyebrow(s(R.string.section_profile)));
-        left.addView(ui.headline(s(R.string.choose_profile)));
-        TextView b = ui.body(s(R.string.profile_body));
+        left.addView(ui.eyebrow(s(R.string.app_name)));
+        left.addView(ui.headline(s(R.string.devices_title)));
+        TextView b = ui.body(s(R.string.devices_body));
         b.setPadding(0, ui.px(14), 0, 0);
         left.addView(b);
 
+        Profiles.Profile active = KeyMap.profile(this);
+        Profiles.Remote rem = active != null ? active.remote : null;
+        Profiles.Tv tv = active != null ? active.tv : null;
+
         LinearLayout right = ui.column();
+        right.addView(ui.section(s(R.string.section_remote)));
+        View remoteRow = ui.row(null, R.drawable.ic_remote, rem != null ? ACCENT : C_OFF,
+                rem != null ? rem.title : s(R.string.remote_unknown),
+                rem != null ? keyList(rem.keys) : s(R.string.remote_unknown_sub), null, 0, this::showRemoteList);
+        remoteRow.setFocusable(false);
+        right.addView(remoteRow);
+        View identify = ui.row(null, R.drawable.ic_remote, ACCENT, s(R.string.identify_remote),
+                s(R.string.identify_remote_sub), null, 0, () -> showIdentify(() -> showProfiles(devicesBack)));
+        right.addView(identify);
+        LinearLayout list = ui.row(null, R.drawable.ic_list, C_OFF, s(R.string.choose_from_list),
+                s(R.string.choose_from_list_sub), null, 0, this::showRemoteList);
+        ui.addChevron(list);
+        right.addView(list);
+
+        right.addView(ui.section(s(R.string.section_tv)));
+        boolean tvDetected = tv != null && tv.matches();
+        LinearLayout tvRow = ui.row(null, R.drawable.ic_tv, C_SUB, tv != null ? tv.title : s(R.string.tv_none),
+                tv != null ? (tvDetected ? s(R.string.badge_detected) + "  ·  " : "") + tvSummary(tv)
+                        : s(R.string.no_tv_profile_sub), null, 0, this::showTvList);
+        ui.addChevron(tvRow);
+        right.addView(tvRow);
+
+        right.addView(ui.section(s(R.string.section_profiles_data)));
         LinearLayout upd = ui.row(null, R.drawable.ic_download, GREEN, s(R.string.profiles_update),
                 profileStatus != null ? profileStatus : s(R.string.profiles_update_sub), null, 0, () -> { });
         upd.setOnClickListener(v -> {
@@ -180,53 +220,173 @@ public class SettingsActivity extends Activity {
             Profiles.update(this, (changed, err) -> {
                 profileUpdating = false;
                 profileStatus = err != null ? s(R.string.profiles_error, err)
-                        : changed ? s(R.string.profiles_updated, Profiles.all(this).size()) : s(R.string.profiles_current);
-                if (changed && back == backTo) showProfiles(backTo); // new list, status in the row
+                        : changed ? s(R.string.profiles_updated, Profiles.db(this).size()) : s(R.string.profiles_current);
+                if (changed && back == backTo) showProfiles(backTo); // new lists, status in the row
                 else setRowSub(upd, profileStatus);
             });
         });
         right.addView(upd);
-        right.addView(ui.section(s(R.string.section_profile)));
+
+        ui.setScreen(left, right);
+        ui.requestFocusLater(profileStatus != null ? upd : identify);
+        profileStatus = null;
+    }
+
+    /** Identify the remote: the next key press tells which input device it came from. */
+    private void showIdentify(Runnable backTo) {
+        if (!KeyService.running) { ui.toast(s(R.string.service_inactive_toast)); return; }
+        back = () -> { KeyService.capture = null; backTo.run(); };
+        LinearLayout box = ui.column();
+        box.setGravity(Gravity.CENTER_HORIZONTAL);
+        box.addView(ui.iconBox(null, R.drawable.ic_remote, ACCENT, 72));
+        TextView h = ui.headline(s(R.string.identify_title));
+        h.setGravity(Gravity.CENTER);
+        h.setPadding(0, ui.px(20), 0, ui.px(8));
+        box.addView(h);
+        TextView b = ui.body(s(R.string.identify_body));
+        b.setGravity(Gravity.CENTER);
+        box.addView(b);
+        FrameLayout root = new FrameLayout(this);
+        root.setBackgroundColor(BG);
+        root.addView(box, new FrameLayout.LayoutParams(-2, -2, Gravity.CENTER));
+        setContentView(root);
+
+        KeyService.captureAll = false;
+        KeyService.capture = code -> runOnUiThread(() -> showIdentified(code, backTo));
+    }
+
+    private void showIdentified(int code, Runnable backTo) {
+        boolean first = !KeyMap.profileChosen(this);
+        Profiles.Tv tv = KeyMap.profile(this) != null && KeyMap.profile(this).tv != null
+                ? KeyMap.profile(this).tv : Profiles.detectTv(this);
+        Profiles.Remote r = Profiles.identify(this, KeyMap.prefs(this).getString("r" + code, null), code, tv);
+        back = backTo;
+
+        LinearLayout left = ui.column();
+        left.addView(ui.eyebrow(s(R.string.identify_remote)));
+        left.addView(ui.headline(r != null ? s(R.string.identify_found) : s(R.string.identify_none)));
+        TextView b = ui.body(r != null ? s(R.string.identify_found_body, r.title)
+                : s(R.string.identify_none_body, KeyMap.label(code)));
+        b.setPadding(0, ui.px(14), 0, 0);
+        left.addView(b);
+
+        LinearLayout right = ui.column();
+        View focus;
+        Runnable done = first ? this::showMain : backTo;
+        if (r != null) {
+            focus = ui.row(null, R.drawable.ic_remote, GREEN, s(R.string.identify_use, r.title), keyList(r.keys),
+                    s(R.string.badge_detected), GREEN, () -> {
+                        if (first) KeyMap.setDetected(this);
+                        KeyMap.setProfiles(this, r.id, tv != null ? tv.id : null);
+                        done.run();
+                    });
+            right.addView(focus);
+        } else {
+            focus = ui.row(null, R.drawable.ic_remote, GREEN, s(R.string.upload_row), s(R.string.identify_upload_sub),
+                    null, 0, this::showUpload);
+            right.addView(focus);
+            right.addView(ui.row(null, R.drawable.ic_star, C_OFF, s(R.string.identify_without), s(R.string.no_profile_sub),
+                    null, 0, () -> {
+                        if (first) KeyMap.setDetected(this);
+                        KeyMap.setProfiles(this, "none", null);
+                        done.run();
+                    }));
+        }
+        right.addView(ui.row(null, R.drawable.ic_undo, C_OFF, s(R.string.identify_again), null, null, 0,
+                () -> showIdentify(backTo)));
+        ui.setScreen(left, right);
+        ui.requestFocusLater(focus);
+    }
+
+    /** All remote profiles, for remotes that cannot be identified by a button. */
+    private void showRemoteList() {
+        back = () -> showProfiles(devicesBack);
+        LinearLayout left = ui.column();
+        left.addView(ui.eyebrow(s(R.string.devices_title)));
+        left.addView(ui.headline(s(R.string.remote_list_title)));
+        TextView b = ui.body(s(R.string.remote_list_body));
+        b.setPadding(0, ui.px(14), 0, 0);
+        left.addView(b);
+
         Profiles.Profile active = KeyMap.profile(this);
-        boolean chosen = KeyMap.profileChosen(this);
+        Profiles.Remote cur = active != null ? active.remote : null;
+        Profiles.Tv detTv = Profiles.detectTv(this);
+        LinearLayout right = ui.column();
         View focus = null;
-        for (Profiles.Profile p : Profiles.all(this)) {
-            boolean on = active == p;
-            String badge = on ? s(R.string.b_active) : p.score(this) > 0 ? s(R.string.badge_detected) : null;
-            View r = ui.row(null, R.drawable.ic_remote, on ? ACCENT : C_SUB, p.title, keyList(p), badge, ACCENT,
-                    () -> chooseProfile(p.id));
+        for (Profiles.Remote p : Profiles.db(this).remotes) {
+            boolean on = cur == p;
+            boolean det = p.connected(this) && p.fits(detTv != null ? detTv.id : null);
+            View r = ui.row(null, R.drawable.ic_remote, on ? ACCENT : C_SUB, p.title, keyList(p.keys),
+                    on ? s(R.string.b_active) : det ? s(R.string.badge_detected) : null, ACCENT,
+                    () -> chooseProfiles(p.id, null));
             if (on || focus == null) focus = r;
             right.addView(r);
         }
-        boolean none = chosen && active == null;
-        View r = ui.row(null, R.drawable.ic_star, C_OFF, s(R.string.no_profile), s(R.string.no_profile_sub),
-                none ? s(R.string.b_active) : null, ACCENT, () -> chooseProfile("none"));
-        if (none) focus = r;
-        right.addView(r);
-        if (profileStatus != null) focus = upd;
+        View none = ui.row(null, R.drawable.ic_star, C_OFF, s(R.string.no_remote_profile), s(R.string.no_profile_sub),
+                KeyMap.profileChosen(this) && cur == null ? s(R.string.b_active) : null, ACCENT,
+                () -> chooseProfiles("none", null));
+        if (focus == null) focus = none;
+        right.addView(none);
         ui.setScreen(left, right);
         ui.requestFocusLater(focus);
-        profileStatus = null;
+    }
+
+    /** All TV profiles (the TV is detected; changing it is rarely needed). */
+    private void showTvList() {
+        back = () -> showProfiles(devicesBack);
+        LinearLayout left = ui.column();
+        left.addView(ui.eyebrow(s(R.string.devices_title)));
+        left.addView(ui.headline(s(R.string.tv_list_title)));
+        TextView b = ui.body(s(R.string.tv_list_body));
+        b.setPadding(0, ui.px(14), 0, 0);
+        left.addView(b);
+
+        Profiles.Profile active = KeyMap.profile(this);
+        Profiles.Tv cur = active != null ? active.tv : null;
+        LinearLayout right = ui.column();
+        View focus = null;
+        for (Profiles.Tv p : Profiles.db(this).tvs) {
+            boolean on = cur == p;
+            View r = ui.row(null, R.drawable.ic_tv, on ? ACCENT : C_SUB, p.title, tvSummary(p),
+                    on ? s(R.string.b_active) : p.matches() ? s(R.string.badge_detected) : null, ACCENT,
+                    () -> chooseProfiles(null, p.id));
+            if (on || focus == null) focus = r;
+            right.addView(r);
+        }
+        View none = ui.row(null, R.drawable.ic_star, C_OFF, s(R.string.no_tv_profile), s(R.string.no_tv_profile_sub),
+                KeyMap.profileChosen(this) && cur == null ? s(R.string.b_active) : null, ACCENT,
+                () -> chooseProfiles(null, "none"));
+        if (focus == null) focus = none;
+        right.addView(none);
+        ui.setScreen(left, right);
+        ui.requestFocusLater(focus);
+    }
+
+    private void chooseProfiles(String remote, String tv) {
+        if (!KeyMap.profileChosen(this)) KeyMap.setDetected(this); // first choice: the other part is detected
+        KeyMap.setProfiles(this, remote, tv);
+        showProfiles(devicesBack);
+    }
+
+    /** "Live TV app known · program guide" */
+    private String tvSummary(Profiles.Tv t) {
+        String live = t.liveTv != null ? s(R.string.tv_has_livetv) : s(R.string.tv_no_livetv);
+        return t.epg ? live + "  ·  " + s(R.string.tv_has_epg) : live;
     }
 
     /** Result of the last manual profile update (shown once). */
     private String profileStatus;
     private boolean profileUpdating;
 
-    private void chooseProfile(String id) {
-        KeyMap.setProfile(this, id);
-        showMain();
-    }
-
     /** "9 buttons: YouTube, Netflix, ..." */
-    private String keyList(Profiles.Profile p) {
+    private String keyList(Profiles.Key[] keys) {
         StringBuilder sb = new StringBuilder();
-        for (Profiles.Key k : p.keys) {
+        for (Profiles.Key k : keys) {
             ButtonTypes.Type t = ButtonTypes.byId(k.type);
             if (sb.length() > 0) sb.append(", ");
             sb.append(k.name() != null ? k.name() : t != null ? s(t.name) : KeyMap.label(k.code));
         }
-        return s(R.string.profile_keys, p.keys.length, sb.toString());
+        return s(R.string.profile_keys, keys.length, sb.toString());
     }
 
     // ------------------------------------------------------------------ Overview
@@ -287,8 +447,10 @@ public class SettingsActivity extends Activity {
 
         list.addView(ui.section(s(R.string.section_profile)));
         Profiles.Profile p = KeyMap.profile(this);
-        LinearLayout prof = ui.row(null, R.drawable.ic_remote, C_SUB, p != null ? p.title : s(R.string.no_profile),
-                Profiles.deviceName(), null, 0, () -> showProfiles(this::showMain));
+        LinearLayout prof = ui.row(null, R.drawable.ic_remote, C_SUB,
+                p != null && p.remote != null ? p.remote.title : s(R.string.remote_unknown),
+                s(R.string.tv_label, p != null && p.tv != null ? p.tv.title : Profiles.deviceName()),
+                null, 0, () -> showProfiles(this::showMain));
         ui.addChevron(prof);
         list.addView(prof);
 

@@ -30,8 +30,8 @@ rsvg-convert -w 320 -h 180 art/banner.svg -o res/drawable-xhdpi/banner.png
 rsvg-convert -w 96 -h 96 art/icon.svg -o res/mipmap-xhdpi/ic_launcher.png
 mkdir -p res/mipmap-xxxhdpi; rsvg-convert -w 192 -h 192 art/icon.svg -o res/mipmap-xxxhdpi/ic_launcher.png
 
-# Resources + manifest (also generates R.java); profiles/profiles.json is bundled as fallback
-mkdir -p "$OUT/assets"; cp profiles/profiles.json "$OUT/assets/"
+# Resources + manifest (also generates R.java); profiles/devices.json is bundled as fallback
+mkdir -p "$OUT/assets"; cp profiles/devices.json "$OUT/assets/"
 "$BT/aapt2" compile --dir res -o "$OUT/res.zip"
 "$BT/aapt2" link -I "$JAR" --manifest AndroidManifest.xml -A "$OUT/assets" -o "$OUT/unsigned.apk" --java "$OUT/gen" "$OUT/res.zip"
 

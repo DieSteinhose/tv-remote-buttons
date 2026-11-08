@@ -1,4 +1,4 @@
-# Checks profiles.json and the worker, and builds the APK (signed with a throwaway key) on every
+# Checks the device profiles and the worker, and builds the APK (signed with a throwaway key) on every
 # push and pull request. The APK is kept as a workflow artifact for testing.
 name: CI
 
@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Check profiles.json
+      - name: Check device profiles
         run: python3 .github/scripts/check_profiles.py
       - name: Check worker syntax
         run: node --check worker/src/index.js

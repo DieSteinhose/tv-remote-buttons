@@ -1,10 +1,11 @@
 {
   "schema": 1,
+  "generated": "from devices.json - do not edit",
   "profiles": [
     {
       "id": "chiq_mt58",
       "title": "CHiQ Google TV (MediaTek)",
-      "notes": "Tested: GTVU65, Android 14. The remote sends MEDIA_SKIP_FORWARD after every button as a release marker, so that key is protected. YouTube/Netflix/Prime work out of the box; Live TV, Guide and Settings get own targets.",
+      "notes": "Tested: GTVU65, Android 14. Live TV, Guide and Settings buttons get own targets because their factory functions are broken. Bluetooth remote of CHiQ Google TVs (tested on GTVU65). It sends MEDIA_SKIP_FORWARD after every button as a release marker, so that key is protected.",
       "match": {
         "brand": [
           "CHiQ",
@@ -82,8 +83,8 @@
     },
     {
       "id": "philips_tpv",
-      "title": "Philips Google TV (TPV)",
-      "notes": "From device report #3. Tested: series OLED888 in 65 inch (65OLED888/12, platform Philips Google TV TA1 / PH1M_WW_9972, MediaTek mt5896, Android 12); other sizes and series with the same remote should fit. The app buttons are Philips global keys: the TV still runs their factory function (e.g. the Play Store page of a disabled app) even when the app intercepts them. The TV button and the microphone both send keycode 811 (scan codes 0x2ff and 0xd9), so they can only be assigned together; by default both keep their factory function.",
+      "title": "Philips TV (TP Vision)",
+      "notes": "Tested: series OLED888 in 65 inch (65OLED888/12, Philips Google TV TA1 / PH1M_WW_9972, MediaTek mt5896, Android 12). The app buttons are Philips global keys: the TV still runs their factory function (e.g. the Play Store page of a disabled app) even when the app intercepts them. Philips TV remote; its buttons arrive via the Philips input devices TPV_MutilRC and TPV_SMTRC (microphone). The TV button (scan code 0x2ff) and the microphone (0xd9) both send keycode 811.",
       "match": {
         "brand": [
           "Philips"

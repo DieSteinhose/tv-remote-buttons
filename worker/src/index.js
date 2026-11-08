@@ -4,7 +4,7 @@
 //
 // Limits: 5 requests per minute and IP (env.LIMITER) and one report per TV model and IP per day
 // (env.SEEN, KV). Only a SHA-256 hash of IP and model is stored, for 24 hours.
-// A GitHub workflow (.github/workflows/report-to-profile.yml) turns each report into a profile PR.
+// A GitHub workflow (.github/workflows/report-agent.yml) reviews each report and proposes a profile PR.
 
 const MAX_BYTES = 20000;
 const MAX_KEYS = 200;
@@ -112,7 +112,11 @@ function body(r) {
   const d = r.device;
   const lines = [];
   lines.push(`**TV:** ${cell(d.brand)} ${d.tvModel ? `model ${cell(d.tvModel)} · ` : ""}${cell(d.product)} ${cell(d.model)} · Android ${cell(d.android)} (SDK ${cell(d.sdk)}) · hardware ${cell(d.hardware)} · manufacturer ${cell(d.manufacturer)}`);
-  lines.push(`**App:** ${cell(r.app)} · profile ${cell(r.profile) || "none"} · detected ${cell(r.detected) || "none"}`);
+  if (r.remoteProfile !== undefined || r.tvProfile !== undefined || r.detectedRemote !== undefined || r.detectedTv !== undefined) {
+    lines.push(`**App:** ${cell(r.app)} · remote ${cell(r.remoteProfile) || "none"} (detected ${cell(r.detectedRemote) || "none"}) · TV ${cell(r.tvProfile) || "none"} (detected ${cell(r.detectedTv) || "none"})`);
+  } else {
+    lines.push(`**App:** ${cell(r.app)} · profile ${cell(r.profile) || "none"} · detected ${cell(r.detected) || "none"}`);
+  }
   const remotes = (r.remotes || []).slice(0, 10).map((x) => `${cell(x && x.name)} (vendor ${cell(x && x.vendor)}, product ${cell(x && x.product)})`);
   lines.push(`**Remotes:** ${remotes.join(", ") || "none found"}`);
   lines.push("");

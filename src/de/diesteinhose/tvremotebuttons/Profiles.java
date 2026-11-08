@@ -28,15 +28,18 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * Device profiles: which buttons a remote has (keycode, type, default target) plus device-specific
- * details. They are not compiled into the app but loaded from profiles/profiles.json in the GitHub
+ * Device profiles in two layers, combined by the app:
+ *   - remote profiles: the buttons of a remote (keycode, type, default target), recognized by its
+ *     input devices (name / vendor / product), optionally limited to some TV profiles,
+ *   - TV profiles: live TV app, program guide and TV-specific keys, recognized by brand and hardware.
+ * They are not compiled into the app but loaded from profiles/devices.json in the GitHub
  * repository, so new TVs and remotes need no new app version:
  *   1. the cached copy in the app's files directory (last successful download),
- *   2. otherwise the copy bundled in the APK (assets/profiles.json),
+ *   2. otherwise the copy bundled in the APK (assets/devices.json),
  *   3. in the background the current file is fetched from GitHub and replaces the cache.
+ * (profiles/profiles.json is generated from it for app versions up to 1.6.)
  *
- * A profile matches by TV (brand, hardware) and by remote (input device name / vendor / product).
- * On first start the best matching profile is recommended.
+ * On first start the detected remote and TV profiles are recommended.
  *
  * Find keycodes for a new profile with
  *   adb shell setprop log.tag.RemoteButtons DEBUG; adb logcat -s RemoteButtons
@@ -44,10 +47,10 @@ import java.util.Map;
  */
 final class Profiles {
     static final String SOURCE_URL =
-            "https://raw.githubusercontent.com/DieSteinhose/tv-remote-buttons/main/profiles/profiles.json";
+            "https://raw.githubusercontent.com/DieSteinhose/tv-remote-buttons/main/profiles/devices.json";
     /** Profile file format understood by this app version. */
-    static final int SCHEMA = 1;
-    private static final String CACHE = "profiles.json";
+    static final int SCHEMA = 2;
+    private static final String CACHE = "devices.json";
     private static final long REFRESH_MS = 60 * 60 * 1000L;
 
     private Profiles() {}
@@ -68,55 +71,96 @@ final class Profiles {
         String name() { return localized(names); }
     }
 
-    /** A remote: matches input devices by name prefix and/or vendor/product id (-1 = any). */
-    static final class Remote {
+    /** An input device rule: name prefix and/or vendor/product id (-1 = any). */
+    static final class Input {
         final String name;
         final int vendor, product;
 
-        Remote(String name, int vendor, int product) { this.name = name; this.vendor = vendor; this.product = product; }
+        Input(String name, int vendor, int product) { this.name = name; this.vendor = vendor; this.product = product; }
 
-        boolean matches(InputDevice d) {
+        boolean matches(InputDevice d) { return matches(d.getName(), d.getVendorId(), d.getProductId()); }
+
+        boolean matches(String devName, int devVendor, int devProduct) {
             if (name == null && vendor < 0 && product < 0) return false;
-            return (name == null || d.getName().startsWith(name))
-                    && (vendor < 0 || d.getVendorId() == vendor) && (product < 0 || d.getProductId() == product);
+            return (name == null || (devName != null && devName.startsWith(name)))
+                    && (vendor < 0 || devVendor == vendor) && (product < 0 || devProduct == product);
         }
     }
 
-    static final class Profile {
+    /** Remote profile: the buttons of a remote. Recognized by its input devices. */
+    static final class Remote {
         final String id, title;
-        /** Live TV activity (package/class) of this device, or null (then known apps are searched). */
+        final Key[] keys;
+        /** Keys of this remote that are never intercepted (e.g. a release marker). */
+        final int[] protect;
+        final Input[] inputs;
+        /** Only for these TV profiles (the TV software turns scan codes into keycodes); empty = any. */
+        final String[] tvs;
+        /** Ids of schema-1 profiles this remote replaces (for migrating the saved choice). */
+        final String[] legacy;
+
+        Remote(String id, String title, Key[] keys, int[] protect, Input[] inputs, String[] tvs, String[] legacy) {
+            this.id = id; this.title = title; this.keys = keys; this.protect = protect; this.inputs = inputs;
+            this.tvs = tvs; this.legacy = legacy;
+        }
+
+        /** Is one of its input devices connected? */
+        boolean connected(Context c) {
+            for (InputDevice d : inputDevices(c)) for (Input i : inputs) if (i.matches(d)) return true;
+            return false;
+        }
+
+        boolean fits(String tvId) {
+            if (tvs.length == 0) return true;
+            for (String t : tvs) if (t.equals(tvId)) return true;
+            return false;
+        }
+    }
+
+    /** TV profile: live TV app, program guide and TV-specific keys. Recognized by brand and hardware. */
+    static final class Tv {
+        final String id, title;
+        /** Live TV activity (package/class), or null (then known apps are searched). */
         final String liveTv;
         /** Program guide via VIEW on the programs URI sent to the live TV app (MediaTek). */
         final boolean epg;
-        /** Additional keys that are never intercepted. */
         final int[] protect;
-        final Key[] keys;
         final String[] brands;
         final String hardware;
-        final Remote[] remotes;
+        final String[] legacy;
 
-        Profile(String id, String title, String liveTv, boolean epg, int[] protect, Key[] keys,
-                String[] brands, String hardware, Remote[] remotes) {
+        Tv(String id, String title, String liveTv, boolean epg, int[] protect, String[] brands, String hardware,
+           String[] legacy) {
             this.id = id; this.title = title; this.liveTv = liveTv; this.epg = epg; this.protect = protect;
-            this.keys = keys; this.brands = brands; this.hardware = hardware; this.remotes = remotes;
+            this.brands = brands; this.hardware = hardware; this.legacy = legacy;
         }
 
-        boolean tvMatches() {
+        boolean matches() {
             if (brands.length == 0 && hardware == null) return false;
             boolean b = brands.length == 0;
             for (String x : brands) b |= x.equalsIgnoreCase(Build.BRAND) || x.equalsIgnoreCase(Build.MANUFACTURER);
             return b && (hardware == null || Build.HARDWARE.toLowerCase(Locale.ROOT).startsWith(hardware));
         }
+    }
 
-        boolean remoteMatches(Context c) {
-            for (InputDevice d : inputDevices(c)) for (Remote r : remotes) if (r.matches(d)) return true;
-            return false;
-        }
+    /** The active combination of a remote and a TV profile; either part may be null. */
+    static final class Profile {
+        final Remote remote;
+        final Tv tv;
+        final Key[] keys;
+        final String liveTv;
+        final boolean epg;
+        final int[] protect;
 
-        /** 3 = TV and remote match, 2 = only the remote, 1 = only the TV, 0 = no match. */
-        int score(Context c) {
-            boolean tv = tvMatches(), remote = remotes.length > 0 && remoteMatches(c);
-            return tv && remote ? 3 : remote ? 2 : tv ? 1 : 0;
+        Profile(Remote remote, Tv tv) {
+            this.remote = remote; this.tv = tv;
+            keys = remote != null ? remote.keys : new Key[0];
+            liveTv = tv != null ? tv.liveTv : null;
+            epg = tv != null && tv.epg;
+            int[] a = remote != null ? remote.protect : new int[0], b = tv != null ? tv.protect : new int[0];
+            protect = new int[a.length + b.length];
+            System.arraycopy(a, 0, protect, 0, a.length);
+            System.arraycopy(b, 0, protect, a.length, b.length);
         }
 
         Key key(int code) {
@@ -125,34 +169,88 @@ final class Profiles {
         }
     }
 
-    private static volatile List<Profile> all;
-
-    /** All profiles usable by this app version (loaded once, replaced after a download). */
-    static List<Profile> all(Context c) {
-        List<Profile> a = all;
-        if (a == null) {
-            synchronized (Profiles.class) {
-                if (all == null) all = loadLocal(c.getApplicationContext());
-                a = all;
-            }
-        }
-        return a;
+    /** All profiles usable by this app version. */
+    static final class Db {
+        final List<Remote> remotes;
+        final List<Tv> tvs;
+        Db(List<Remote> remotes, List<Tv> tvs) { this.remotes = remotes; this.tvs = tvs; }
+        int size() { return remotes.size() + tvs.size(); }
     }
 
-    static Profile byId(Context c, String id) {
-        if (id != null) for (Profile p : all(c)) if (p.id.equals(id)) return p;
+    private static volatile Db db;
+
+    /** The profiles (loaded once, replaced after a download). */
+    static Db db(Context c) {
+        Db d = db;
+        if (d == null) {
+            synchronized (Profiles.class) {
+                if (db == null) db = loadLocal(c.getApplicationContext());
+                d = db;
+            }
+        }
+        return d;
+    }
+
+    static Remote remote(Context c, String id) {
+        if (id != null) for (Remote r : db(c).remotes) if (r.id.equals(id)) return r;
         return null;
     }
 
-    /** Best matching profile for this TV and its remote(s), or null. */
-    static Profile detect(Context c) {
-        Profile best = null;
+    static Tv tv(Context c, String id) {
+        if (id != null) for (Tv t : db(c).tvs) if (t.id.equals(id)) return t;
+        return null;
+    }
+
+    /** TV profile matching this TV, or null. */
+    static Tv detectTv(Context c) {
+        for (Tv t : db(c).tvs) if (t.matches()) return t;
+        return null;
+    }
+
+    /** Remote profile of a connected remote that fits the TV profile (specific ones first), or null. */
+    static Remote detectRemote(Context c, Tv tv) {
+        Remote any = null;
+        for (Remote r : db(c).remotes) {
+            if (!r.connected(c) || !r.fits(tv != null ? tv.id : null)) continue;
+            if (r.tvs.length > 0) return r;
+            if (any == null) any = r;
+        }
+        return any;
+    }
+
+    /**
+     * Remote profile for a key press: the one whose input devices match the device the key came
+     * from ("name|vendor|product", see KeyMap.rememberSource), preferring profiles that know the
+     * key and profiles made for this TV. Null if none matches.
+     */
+    static Remote identify(Context c, String source, int code, Tv tv) {
+        if (source == null) return null;
+        String[] d = source.split("\\|", -1);
+        int vendor = -1, product = -1;
+        try {
+            if (d.length >= 3) { vendor = Integer.parseInt(d[1]); product = Integer.parseInt(d[2]); }
+        } catch (NumberFormatException ignored) { }
+        Remote best = null;
         int bestScore = 0;
-        for (Profile p : all(c)) {
-            int s = p.score(c);
-            if (s > bestScore) { best = p; bestScore = s; }
+        for (Remote r : db(c).remotes) {
+            if (!r.fits(tv != null ? tv.id : null)) continue;
+            boolean dev = false;
+            for (Input i : r.inputs) dev |= i.matches(d[0], vendor, product);
+            if (!dev) continue;
+            boolean knows = false;
+            for (Key k : r.keys) knows |= k.code == code;
+            int score = 1 + (knows ? 2 : 0) + (r.tvs.length > 0 ? 1 : 0);
+            if (score > bestScore) { best = r; bestScore = score; }
         }
         return best;
+    }
+
+    /** {remote id, TV id} that replace a schema-1 profile id (null entries if unknown). */
+    static String[] legacy(Context c, String oldId) {
+        String r = null, t = null;
+        for (Remote x : db(c).remotes) for (String l : x.legacy) if (l.equals(oldId) && r == null) r = x.id;
+        for (Tv x : db(c).tvs) for (String l : x.legacy) if (l.equals(oldId) && t == null) t = x.id;
+        return new String[]{r, t};
     }
 
     /**
@@ -179,14 +277,14 @@ final class Profiles {
             String error = null;
             try {
                 String json = download(SOURCE_URL);
-                List<Profile> parsed = parse(json, versionCode(c));
+                Db parsed = parse(json, versionCode(c));
                 File cache = new File(c.getFilesDir(), CACHE);
                 String old = cache.exists() ? new String(readAll(new FileInputStream(cache)), StandardCharsets.UTF_8) : null;
                 if (!json.equals(old)) {
                     try (FileOutputStream out = new FileOutputStream(cache)) {
                         out.write(json.getBytes(StandardCharsets.UTF_8));
                     }
-                    all = parsed;
+                    db = parsed;
                     changed = true;
                     Log.i(KeyMap.TAG, "Profiles updated: " + parsed.size());
                 }
@@ -200,7 +298,7 @@ final class Profiles {
         }, "profiles").start();
     }
 
-    private static List<Profile> loadLocal(Context c) {
+    private static Db loadLocal(Context c) {
         int app = versionCode(c);
         File cache = new File(c.getFilesDir(), CACHE);
         if (cache.exists()) {
@@ -214,57 +312,79 @@ final class Profiles {
             return parse(new String(readAll(in), StandardCharsets.UTF_8), app);
         } catch (Exception e) {
             Log.e(KeyMap.TAG, "Bundled profiles unusable", e);
-            return Collections.emptyList();
+            return new Db(Collections.emptyList(), Collections.emptyList());
         }
     }
 
-    /** Parses profiles.json; profiles needing a newer app ("minApp") are skipped. */
-    static List<Profile> parse(String json, int appVersionCode) throws Exception {
+    /** Parses devices.json; entries needing a newer app ("minApp") are skipped. */
+    static Db parse(String json, int appVersionCode) throws Exception {
         JSONObject root = new JSONObject(json);
-        if (root.optInt("schema", 1) > SCHEMA) throw new IllegalStateException("schema " + root.optInt("schema"));
-        List<Profile> out = new ArrayList<>();
-        JSONArray arr = root.getJSONArray("profiles");
-        for (int i = 0; i < arr.length(); i++) {
-            JSONObject p = arr.getJSONObject(i);
+        if (root.optInt("schema", 0) != SCHEMA) throw new IllegalStateException("schema " + root.optInt("schema"));
+        List<Remote> remotes = new ArrayList<>();
+        JSONArray ra = root.optJSONArray("remotes");
+        for (int i = 0; ra != null && i < ra.length(); i++) {
+            JSONObject p = ra.getJSONObject(i);
             if (p.optInt("minApp", 0) > appVersionCode) continue;
             JSONObject m = p.optJSONObject("match");
             if (m == null) m = new JSONObject();
-            JSONArray b = m.optJSONArray("brand");
-            String[] brands = new String[b == null ? 0 : b.length()];
-            for (int k = 0; k < brands.length; k++) brands[k] = b.getString(k);
-            JSONArray r = m.optJSONArray("remotes");
-            Remote[] remotes = new Remote[r == null ? 0 : r.length()];
-            for (int k = 0; k < remotes.length; k++) {
-                JSONObject o = r.getJSONObject(k);
-                remotes[k] = new Remote(o.has("name") ? o.getString("name") : null,
+            JSONArray in = m.optJSONArray("inputs");
+            Input[] inputs = new Input[in == null ? 0 : in.length()];
+            for (int k = 0; k < inputs.length; k++) {
+                JSONObject o = in.getJSONObject(k);
+                inputs[k] = new Input(o.has("name") ? o.getString("name") : null,
                         hex(o.optString("vendor", null)), hex(o.optString("product", null)));
             }
-            JSONArray pr = p.optJSONArray("protect");
-            int[] protect = new int[pr == null ? 0 : pr.length()];
-            for (int k = 0; k < protect.length; k++) protect[k] = keyCode(pr.get(k));
-            JSONArray ks = p.getJSONArray("keys");
-            List<Key> keys = new ArrayList<>();
-            for (int k = 0; k < ks.length(); k++) {
-                JSONObject o = ks.getJSONObject(k);
-                int code = keyCode(o.has("key") ? o.get("key") : o.get("code"));
-                if (code <= 0) continue;
-                Map<String, String> names = new HashMap<>();
-                Object n = o.opt("name");
-                if (n instanceof String) names.put("en", (String) n);
-                else if (n instanceof JSONObject) {
-                    JSONObject no = (JSONObject) n;
-                    for (java.util.Iterator<String> it = no.keys(); it.hasNext(); ) {
-                        String lang = it.next();
-                        names.put(lang, no.getString(lang));
-                    }
-                }
-                keys.add(new Key(code, o.optString("type", "other"), o.optString("default", KeyMap.SYSTEM), names));
-            }
-            out.add(new Profile(p.getString("id"), p.optString("title", p.getString("id")),
-                    p.optString("liveTv", null), p.optBoolean("epg", false), protect,
-                    keys.toArray(new Key[0]), brands,
-                    m.has("hardware") ? m.getString("hardware").toLowerCase(Locale.ROOT) : null, remotes));
+            remotes.add(new Remote(p.getString("id"), p.optString("title", p.getString("id")), keys(p),
+                    codes(p.optJSONArray("protect")), inputs, strings(m.optJSONArray("tvs")),
+                    strings(p.optJSONArray("legacy"))));
         }
+        List<Tv> tvs = new ArrayList<>();
+        JSONArray ta = root.optJSONArray("tvs");
+        for (int i = 0; ta != null && i < ta.length(); i++) {
+            JSONObject p = ta.getJSONObject(i);
+            if (p.optInt("minApp", 0) > appVersionCode) continue;
+            JSONObject m = p.optJSONObject("match");
+            if (m == null) m = new JSONObject();
+            tvs.add(new Tv(p.getString("id"), p.optString("title", p.getString("id")),
+                    p.optString("liveTv", null), p.optBoolean("epg", false), codes(p.optJSONArray("protect")),
+                    strings(m.optJSONArray("brand")),
+                    m.has("hardware") ? m.getString("hardware").toLowerCase(Locale.ROOT) : null,
+                    strings(p.optJSONArray("legacy"))));
+        }
+        return new Db(remotes, tvs);
+    }
+
+    private static Key[] keys(JSONObject p) throws Exception {
+        JSONArray ks = p.optJSONArray("keys");
+        List<Key> keys = new ArrayList<>();
+        for (int k = 0; ks != null && k < ks.length(); k++) {
+            JSONObject o = ks.getJSONObject(k);
+            int code = keyCode(o.has("key") ? o.get("key") : o.get("code"));
+            if (code <= 0) continue;
+            Map<String, String> names = new HashMap<>();
+            Object n = o.opt("name");
+            if (n instanceof String) names.put("en", (String) n);
+            else if (n instanceof JSONObject) {
+                JSONObject no = (JSONObject) n;
+                for (java.util.Iterator<String> it = no.keys(); it.hasNext(); ) {
+                    String lang = it.next();
+                    names.put(lang, no.getString(lang));
+                }
+            }
+            keys.add(new Key(code, o.optString("type", "other"), o.optString("default", KeyMap.SYSTEM), names));
+        }
+        return keys.toArray(new Key[0]);
+    }
+
+    private static int[] codes(JSONArray a) throws Exception {
+        int[] out = new int[a == null ? 0 : a.length()];
+        for (int k = 0; k < out.length; k++) out[k] = keyCode(a.get(k));
+        return out;
+    }
+
+    private static String[] strings(JSONArray a) throws Exception {
+        String[] out = new String[a == null ? 0 : a.length()];
+        for (int k = 0; k < out.length; k++) out[k] = a.getString(k);
         return out;
     }
 
@@ -272,7 +392,9 @@ final class Profiles {
     private static int keyCode(Object v) {
         if (v instanceof Number) return ((Number) v).intValue();
         String s = String.valueOf(v);
-        return KeyEvent.keyCodeFromString(s.startsWith("KEYCODE_") || s.matches("\\d+") ? s : "KEYCODE_" + s);
+        // Vendor keycodes (e.g. 811) are above KeyEvent.getMaxKeyCode(), which keyCodeFromString rejects
+        if (s.matches("\\d+")) return Integer.parseInt(s);
+        return KeyEvent.keyCodeFromString(s.startsWith("KEYCODE_") ? s : "KEYCODE_" + s);
     }
 
     private static int hex(String s) {

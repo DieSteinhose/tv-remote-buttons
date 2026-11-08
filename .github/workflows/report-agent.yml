@@ -1,12 +1,11 @@
 # Reviews a device report (issue labeled "device-report", created by the report worker) with
-# Claude and proposes a pull request that extends profiles/profiles.json and DEVICES.md. After
+# Claude and proposes a pull request that extends profiles/devices.json and DEVICES.md. After
 # review and merge, the apps download the new profiles on their next start.
 #
 # The report is untrusted, anonymous input. Therefore the agent job has a read-only token, no git
-# credentials and may only edit profiles.json, DEVICES.md and its summary and run the profile
+# credentials and may only edit devices.json, DEVICES.md and its summary and run the profile
 # check. A second job without the agent validates the result and opens the pull request.
-# Needs the secret CLAUDE_CODE_OAUTH_TOKEN (`claude setup-token`, Claude Pro/Max) - without it,
-# use the deterministic "Report to profile" workflow.
+# Needs the secret CLAUDE_CODE_OAUTH_TOKEN (`claude setup-token`, Claude Pro/Max).
 name: Report agent
 
 on:
@@ -57,7 +56,7 @@ jobs:
           claude_args: >-
             --model claude-haiku-5-5
             --max-turns 40
-            --allowedTools "Read,Glob,Grep,Edit(profiles/profiles.json),Edit(DEVICES.md),Write(.agent/summary.md),Edit(.agent/summary.md),Bash(python3 .github/scripts/check_profiles.py),Bash(python3 .github/scripts/check_profiles.py --fix)"
+            --allowedTools "Read,Glob,Grep,Edit(profiles/devices.json),Edit(DEVICES.md),Write(.agent/summary.md),Edit(.agent/summary.md),Bash(python3 .github/scripts/check_profiles.py),Bash(python3 .github/scripts/check_profiles.py --fix)"
             --disallowedTools "WebFetch,WebSearch"
       - name: Keep the result
         if: steps.extract.outputs.valid == 'true'
@@ -67,7 +66,7 @@ jobs:
           include-hidden-files: true
           if-no-files-found: error
           path: |
-            profiles/profiles.json
+            profiles/devices.json
             DEVICES.md
             .agent/summary.md
 
@@ -94,9 +93,10 @@ jobs:
       - name: Validate and propose
         if: needs.evaluate.outputs.valid == 'true'
         run: |
-          # take over only the two files the agent may change
-          cp "$RUNNER_TEMP/agent/profiles/profiles.json" profiles/profiles.json
+          # take over only the two files the agent may change; regenerate profiles.json for old apps
+          cp "$RUNNER_TEMP/agent/profiles/devices.json" profiles/devices.json
           cp "$RUNNER_TEMP/agent/DEVICES.md" DEVICES.md
+          python3 .github/scripts/check_profiles.py --fix > /dev/null || true
           python3 .github/scripts/sanitize_summary.py "$RUNNER_TEMP/agent/.agent/summary.md" > "$RUNNER_TEMP/summary.md"
           if ! python3 .github/scripts/check_profiles.py > "$RUNNER_TEMP/check.txt"; then
             { echo "The agent's proposal failed the profile check, so no pull request was opened."; echo

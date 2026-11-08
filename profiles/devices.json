@@ -1,0 +1,163 @@
+{
+  "schema": 2,
+  "remotes": [
+    {
+      "id": "chiq_tvc0gwbt",
+      "title": "CHiQ Bluetooth remote TVC0GWBT",
+      "notes": "Bluetooth remote of CHiQ Google TVs (tested on GTVU65). It sends MEDIA_SKIP_FORWARD after every button as a release marker, so that key is protected.",
+      "legacy": [
+        "chiq_mt58"
+      ],
+      "match": {
+        "inputs": [
+          {
+            "name": "TVC0GWBT",
+            "vendor": "0x1d5a",
+            "product": "0xc082"
+          }
+        ]
+      },
+      "protect": [
+        "MEDIA_SKIP_FORWARD"
+      ],
+      "keys": [
+        {
+          "key": "TV_INPUT_COMPOSITE_1",
+          "type": "youtube",
+          "default": "@system"
+        },
+        {
+          "key": "STEM_1",
+          "type": "netflix",
+          "default": "@system"
+        },
+        {
+          "key": "FEATURED_APP_1",
+          "type": "livetv",
+          "default": "@livetv"
+        },
+        {
+          "key": "TV_INPUT_COMPONENT_1",
+          "type": "prime",
+          "default": "@system"
+        },
+        {
+          "key": "ALL_APPS",
+          "type": "apps",
+          "default": "@system"
+        },
+        {
+          "key": "GUIDE",
+          "type": "guide",
+          "default": "@epg",
+          "name": {
+            "en": "Guide (2nd Live TV button)",
+            "de": "Guide (2. Live-TV-Taste)"
+          }
+        },
+        {
+          "key": "NOTIFICATION",
+          "type": "settings",
+          "default": "com.android.tv.settings/com.android.tv.settings.MainSettings"
+        },
+        {
+          "key": "BUTTON_5",
+          "type": "free",
+          "default": "@system"
+        },
+        {
+          "key": "REFRESH",
+          "type": "media",
+          "default": "@system",
+          "name": {
+            "en": "USB",
+            "de": "USB"
+          }
+        }
+      ]
+    },
+    {
+      "id": "philips_tpv_rc",
+      "title": "Philips remote (TP Vision)",
+      "notes": "Philips TV remote; its buttons arrive via the Philips input devices TPV_MutilRC and TPV_SMTRC (microphone). The TV button (scan code 0x2ff) and the microphone (0xd9) both send keycode 811.",
+      "legacy": [
+        "philips_tpv"
+      ],
+      "match": {
+        "inputs": [
+          {
+            "name": "TPV_MutilRC"
+          },
+          {
+            "name": "TPV_SMTRC"
+          }
+        ]
+      },
+      "keys": [
+        {
+          "key": "811",
+          "type": "livetv",
+          "default": "@system",
+          "name": {
+            "en": "TV button (also microphone)",
+            "de": "TV-Taste (auch Mikrofon)"
+          }
+        },
+        {
+          "key": "NETFLIX",
+          "type": "netflix",
+          "default": "@system"
+        },
+        {
+          "key": "781",
+          "type": "youtube",
+          "default": "@system"
+        },
+        {
+          "key": "788",
+          "type": "prime",
+          "default": "@system"
+        }
+      ]
+    }
+  ],
+  "tvs": [
+    {
+      "id": "chiq_mt58",
+      "title": "CHiQ Google TV (MediaTek)",
+      "notes": "Tested: GTVU65, Android 14. Live TV, Guide and Settings buttons get own targets because their factory functions are broken.",
+      "legacy": [
+        "chiq_mt58"
+      ],
+      "match": {
+        "brand": [
+          "CHiQ",
+          "Changhong"
+        ],
+        "hardware": "mt58"
+      },
+      "liveTv": "com.mediatek.wwtv.tvcenter/com.mediatek.wwtv.tvcenter.nav.TurnkeyUiMainActivity",
+      "epg": true,
+      "remotes": [
+        "chiq_tvc0gwbt"
+      ]
+    },
+    {
+      "id": "philips_tpv",
+      "title": "Philips TV (TP Vision)",
+      "notes": "Tested: series OLED888 in 65 inch (65OLED888/12, Philips Google TV TA1 / PH1M_WW_9972, MediaTek mt5896, Android 12). The app buttons are Philips global keys: the TV still runs their factory function (e.g. the Play Store page of a disabled app) even when the app intercepts them.",
+      "legacy": [
+        "philips_tpv"
+      ],
+      "match": {
+        "brand": [
+          "Philips"
+        ]
+      },
+      "liveTv": "org.droidtv.playtv/org.droidtv.playtv.PlayTvActivity",
+      "remotes": [
+        "philips_tpv_rc"
+      ]
+    }
+  ]
+}
