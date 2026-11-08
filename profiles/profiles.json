@@ -79,6 +79,51 @@
           }
         }
       ]
+    },
+    {
+      "id": "philips_ph1m_ww_9972",
+      "title": "Philips PH1M_WW_9972 (Philips Google TV TA1)",
+      "notes": "From device report #3, Android 12. Review the default targets.",
+      "match": {
+        "brand": [
+          "Philips"
+        ],
+        "hardware": "mt5896",
+        "remotes": [
+          {
+            "name": "TPV_MutilRC",
+            "vendor": "0x0000",
+            "product": "0x0000"
+          },
+          {
+            "name": "TPV_SMTRC",
+            "vendor": "0x0000",
+            "product": "0x0000"
+          }
+        ]
+      },
+      "keys": [
+        {
+          "key": "NETFLIX",
+          "type": "netflix",
+          "default": "@system"
+        },
+        {
+          "key": "788",
+          "type": "prime",
+          "default": "@system"
+        },
+        {
+          "key": "781",
+          "type": "youtube",
+          "default": "@system"
+        },
+        {
+          "key": "811",
+          "type": "assistant",
+          "default": "@system"
+        }
+      ]
     }
   ]
 }
