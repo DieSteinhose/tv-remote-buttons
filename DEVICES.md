@@ -21,16 +21,18 @@ report, extends the profiles and this list, and opens a pull request.
 
 | Remote | Profile | Works with | Buttons |
 |---|---|---|---|
-| [CHiQ Bluetooth remote TVC0GWBT](#chiq_tvc0gwbt) | `chiq_tvc0gwbt` | [CHiQ Google TV](#chiq_mt58) | 9 |
-| [MStar TV remote (IR receiver)](#mstar_ir) | `mstar_ir` | [CHiQ Google TV](#chiq_mt58) | 10 |
+| [CHiQ remote TVC0GWBT](#chiq_tvc0gwbt) | `chiq_tvc0gwbt` | [CHiQ Google TV](#chiq_mt58) | 11 |
 | [Philips remote (TP Vision)](#philips_tpv_rc) | `philips_tpv_rc` | [Philips TV](#philips_tpv) | 4 |
 
 ### chiq_tvc0gwbt
 
-**CHiQ Bluetooth remote TVC0GWBT** - input device `TVC0GWBT` (vendor `0x1d5a`, product `0xc082`)
+**CHiQ remote TVC0GWBT (Bluetooth and infrared)** - Bluetooth input device `TVC0GWBT` (vendor
+`0x1d5a`, product `0xc082`); without a Bluetooth connection the same buttons arrive via infrared at
+the TV's `MStar Smart TV IR Receiver` (`0x3697`/`0x0001`) with the same keycodes
 
-- Tested with: [CHiQ Google TV](#chiq_mt58) GTVU65
-- Reports: #2
+- Tested with: [CHiQ Google TV](#chiq_mt58) GTVU65 (Bluetooth: #2, infrared: #7)
+- Limited to CHiQ TVs (`match.tvs`): the IR receiver is built into many MediaTek TVs, whose software
+  maps infrared codes differently
 
 | Button | Key | Type | Default |
 |---|---|---|---|
@@ -43,34 +45,13 @@ report, extends the profiles and this list, and opens a pull request.
 | Settings | `NOTIFICATION` | settings | TV settings |
 | Custom button | `BUTTON_5` | free | factory |
 | USB | `REFRESH` | media | factory |
-
-Notes: the remote sends `MEDIA_SKIP_FORWARD` after every button as a release marker, so that key is
-protected. YouTube, Netflix and Prime work out of the box; Live TV, Guide and Settings get own
-targets because their factory functions are broken on the CHiQ TV.
-
-### mstar_ir
-
-**MStar TV remote (IR receiver)** - input device `MStar Smart TV IR Receiver` (vendor `0x3697`, product `0x0001`)
-
-- Tested with: [CHiQ Google TV](#chiq_mt58) GTVU65
-- Reports: #7
-
-| Button | Key | Type | Default |
-|---|---|---|---|
-| YouTube | `TV_INPUT_COMPOSITE_1` | youtube | factory |
-| Netflix | `STEM_1` | netflix | factory |
-| Live TV | `FEATURED_APP_1` | livetv | live TV |
-| Prime Video | `TV_INPUT_COMPONENT_1` | prime | factory |
-| Apps | `ALL_APPS` | apps | factory |
-| Guide (2nd Live TV button) | `GUIDE` | guide | program guide |
-| Custom button | `BUTTON_5` | free | factory |
-| USB | `REFRESH` | media | factory |
-| Assistant | `TV_RADIO_SERVICE` | assistant | factory |
+| Microphone | `TV_RADIO_SERVICE` | assistant | factory |
 | Switch profile | `PROFILE_SWITCH` | other | factory |
 
-Notes: the keycodes are the same as on the CHiQ Bluetooth remote, but this remote does not send
-`MEDIA_SKIP_FORWARD`, so nothing is protected. The Settings button of the CHiQ remote
-(`NOTIFICATION`) was not part of this report.
+Notes: via Bluetooth the remote sends `MEDIA_SKIP_FORWARD` after every button as a release marker,
+so that key is protected (via infrared there is no marker). YouTube, Netflix and Prime work out of
+the box; Live TV, Guide and Settings get own targets because their factory functions are broken on
+the CHiQ TV.
 
 ### philips_tpv_rc
 
@@ -94,7 +75,7 @@ only be assigned together; by default both keep their factory function.
 
 | TV | Profile | Tested series (sizes) | Remotes |
 |---|---|---|---|
-| [CHiQ Google TV (MediaTek)](#chiq_mt58) | `chiq_mt58` | GTVU65 | [TVC0GWBT](#chiq_tvc0gwbt), [MStar IR](#mstar_ir) |
+| [CHiQ Google TV (MediaTek)](#chiq_mt58) | `chiq_mt58` | GTVU65 | [TVC0GWBT](#chiq_tvc0gwbt) |
 | [Philips TV (TP Vision)](#philips_tpv) | `philips_tpv` | OLED888 (65″) | [Philips remote](#philips_tpv_rc) |
 
 ### chiq_mt58
@@ -103,7 +84,7 @@ only be assigned together; by default both keep their factory function.
 
 - Tested: GTVU65 (model `AI PONT`, hardware `mt5867`, Android 14; reports #2, #7)
 - Live TV: `com.mediatek.wwtv.tvcenter` (MediaTek), program guide supported
-- Remotes: [TVC0GWBT](#chiq_tvc0gwbt), [MStar IR remote](#mstar_ir)
+- Remotes: [TVC0GWBT](#chiq_tvc0gwbt) (Bluetooth and infrared)
 
 ### philips_tpv
 

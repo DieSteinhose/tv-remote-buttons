@@ -5,7 +5,7 @@
     {
       "id": "chiq_mt58",
       "title": "CHiQ Google TV (MediaTek)",
-      "notes": "Tested: GTVU65, Android 14. Live TV, Guide and Settings buttons get own targets because their factory functions are broken. Bluetooth remote of CHiQ Google TVs (tested on GTVU65). It sends MEDIA_SKIP_FORWARD after every button as a release marker, so that key is protected.",
+      "notes": "Tested: GTVU65, Android 14. Live TV, Guide and Settings buttons get own targets because their factory functions are broken. Remote of CHiQ Google TVs (tested on GTVU65). It sends via Bluetooth (TVC0GWBT) and, without a Bluetooth connection, via infrared to the TV's IR receiver (MStar Smart TV IR Receiver) with the same keycodes. Via Bluetooth it sends MEDIA_SKIP_FORWARD after every button as a release marker, so that key is protected. Limited to CHiQ TVs because the IR receiver is built into many MediaTek TVs whose software maps infrared codes differently.",
       "match": {
         "brand": [
           "CHiQ",
@@ -17,6 +17,11 @@
             "name": "TVC0GWBT",
             "vendor": "0x1d5a",
             "product": "0xc082"
+          },
+          {
+            "name": "MStar Smart TV IR Receiver",
+            "vendor": "0x3697",
+            "product": "0x0001"
           }
         ]
       },
@@ -78,82 +83,15 @@
             "en": "USB",
             "de": "USB"
           }
-        }
-      ]
-    },
-    {
-      "id": "chiq_mt58__mstar_ir",
-      "title": "CHiQ Google TV (MediaTek)",
-      "notes": "Tested: GTVU65, Android 14. Live TV, Guide and Settings buttons get own targets because their factory functions are broken. Infrared remote of MStar-based TVs, received by the built-in input device MStar Smart TV IR Receiver. Tested on CHiQ GTVU65 (report #7); the keycodes match the CHiQ Bluetooth remote.",
-      "match": {
-        "brand": [
-          "CHiQ",
-          "Changhong"
-        ],
-        "hardware": "mt58",
-        "remotes": [
-          {
-            "name": "MStar Smart TV IR Receiver",
-            "vendor": "0x3697",
-            "product": "0x0001"
-          }
-        ]
-      },
-      "liveTv": "com.mediatek.wwtv.tvcenter/com.mediatek.wwtv.tvcenter.nav.TurnkeyUiMainActivity",
-      "epg": true,
-      "keys": [
-        {
-          "key": "TV_INPUT_COMPOSITE_1",
-          "type": "youtube",
-          "default": "@system"
-        },
-        {
-          "key": "STEM_1",
-          "type": "netflix",
-          "default": "@system"
-        },
-        {
-          "key": "FEATURED_APP_1",
-          "type": "livetv",
-          "default": "@livetv"
-        },
-        {
-          "key": "TV_INPUT_COMPONENT_1",
-          "type": "prime",
-          "default": "@system"
-        },
-        {
-          "key": "ALL_APPS",
-          "type": "apps",
-          "default": "@system"
-        },
-        {
-          "key": "GUIDE",
-          "type": "guide",
-          "default": "@epg",
-          "name": {
-            "en": "Guide (2nd Live TV button)",
-            "de": "Guide (2. Live-TV-Taste)"
-          }
-        },
-        {
-          "key": "BUTTON_5",
-          "type": "free",
-          "default": "@system"
-        },
-        {
-          "key": "REFRESH",
-          "type": "media",
-          "default": "@system",
-          "name": {
-            "en": "USB",
-            "de": "USB"
-          }
         },
         {
           "key": "TV_RADIO_SERVICE",
           "type": "assistant",
-          "default": "@system"
+          "default": "@system",
+          "name": {
+            "en": "Microphone",
+            "de": "Mikrofon"
+          }
         },
         {
           "key": "PROFILE_SWITCH",
