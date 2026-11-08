@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Builds the app (an AccessibilityService plus a settings screen) without Gradle.
 # Output: build/tv-remote-buttons.apk
-# Requires: Android SDK (platforms/android-34, build-tools/34.0.0), a JDK (11+), rsvg-convert, ImageMagick.
+# Requires: Android SDK (platforms/android-34, build-tools/34.0.0), a JDK (11+), rsvg-convert (librsvg).
 #
 # Signing: by default a local key is created in ~/.android/tv-remote-buttons.jks. Official releases
 # are built and signed by GitHub Actions (.github/workflows/release.yml) with the release key from
@@ -27,8 +27,8 @@ rm -rf "$OUT" res/drawable-de-xhdpi; mkdir -p "$OUT/classes" res/drawable-xhdpi 
 
 # Graphics from SVG: launcher banner and icon
 rsvg-convert -w 320 -h 180 art/banner.svg -o res/drawable-xhdpi/banner.png
-MAGICK=$(command -v magick || command -v convert)   # ImageMagick 7 or 6
-"$MAGICK" res/drawable-xhdpi/banner.png -gravity west -crop 180x180+0+0 +repage -resize 96x96 res/mipmap-xhdpi/ic_launcher.png
+rsvg-convert -w 96 -h 96 art/icon.svg -o res/mipmap-xhdpi/ic_launcher.png
+mkdir -p res/mipmap-xxxhdpi; rsvg-convert -w 192 -h 192 art/icon.svg -o res/mipmap-xxxhdpi/ic_launcher.png
 
 # Resources + manifest (also generates R.java); profiles/profiles.json is bundled as fallback
 mkdir -p "$OUT/assets"; cp profiles/profiles.json "$OUT/assets/"

@@ -48,8 +48,8 @@ for the program guide). It cannot read screen content.
 
 ## Build
 
-Requirements: Android SDK with `platforms/android-34` and `build-tools/34.0.0`, a JDK (11 or newer),
-`rsvg-convert` (librsvg) and ImageMagick (`magick` or `convert`).
+Requirements: Android SDK with `platforms/android-34` and `build-tools/34.0.0`, a JDK (11 or newer)
+and `rsvg-convert` (librsvg).
 
 ```sh
 ./build.sh            # -> build/tv-remote-buttons.apk

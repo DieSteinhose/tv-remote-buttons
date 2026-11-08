@@ -312,20 +312,11 @@ public class SettingsActivity extends Activity {
 
     /** "Version 1.2" with the update status; selecting it installs an available update. */
     private View updateRow() {
-        if (!updateChecked) {
-            updateChecked = true;
-            updateText = s(R.string.update_checking);
-            Updater.check(this, (newer, err) -> {
-                update = newer;
-                updateText = newer != null ? s(R.string.update_available, newer.version)
-                        : err != null ? s(R.string.update_error, err) : s(R.string.update_none);
-                setRowSub(updateRowView, updateText);
-            });
-        }
+        if (!updateChecked) checkUpdate();
         LinearLayout r = ui.row(null, R.drawable.ic_download, update != null ? GREEN : C_OFF,
                 s(R.string.app_version, Updater.versionName(this)), updateText,
                 update != null ? s(R.string.b_update) : null, GREEN, () -> {
-                    if (update == null) { updateChecked = false; setRowSub(updateRowView, s(R.string.update_checking)); updateRow(); return; }
+                    if (update == null) { if (!updateRunning) checkUpdate(); return; }
                     if (updating) return;
                     updating = true;
                     Updater.install(this, update, (pct, err, needsPermission) -> {
@@ -340,6 +331,22 @@ public class SettingsActivity extends Activity {
     }
 
     private LinearLayout updateRowView;
+    private boolean updateRunning;
+
+    /** Looks for a newer release and shows the result in the update row on screen. */
+    private void checkUpdate() {
+        updateChecked = true;
+        updateRunning = true;
+        updateText = s(R.string.update_checking);
+        setRowSub(updateRowView, updateText);
+        Updater.check(this, (newer, err) -> {
+            updateRunning = false;
+            update = newer;
+            updateText = newer != null ? s(R.string.update_available, newer.version)
+                    : err != null ? s(R.string.update_error, err) : s(R.string.update_none);
+            setRowSub(updateRowView, updateText);
+        });
+    }
 
     /** Replaces the subtitle of a row created by Ui.row (if the row is still on screen). */
     private static void setRowSub(LinearLayout row, String text) {
