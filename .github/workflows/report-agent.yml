@@ -1,0 +1,122 @@
+# Reviews a device report (issue labeled "device-report", created by the report worker) with
+# Claude and proposes a pull request that extends profiles/profiles.json and DEVICES.md. After
+# review and merge, the apps download the new profiles on their next start.
+#
+# The report is untrusted, anonymous input. Therefore the agent job has a read-only token, no git
+# credentials and may only edit profiles.json, DEVICES.md and its summary and run the profile
+# check. A second job without the agent validates the result and opens the pull request.
+# Needs the secret CLAUDE_CODE_OAUTH_TOKEN (`claude setup-token`, Claude Pro/Max) - without it,
+# use the deterministic "Report to profile" workflow.
+name: Report agent
+
+on:
+  issues:
+    types: [opened]
+  workflow_dispatch:
+    inputs:
+      issue:
+        description: Issue number of a device report
+        required: true
+
+concurrency: profiles
+
+jobs:
+  evaluate:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (contains(github.event.issue.labels.*.name, 'device-report') &&
+       github.event.issue.user.login == github.repository_owner)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: read
+    outputs:
+      valid: ${{ steps.extract.outputs.valid }}
+    env:
+      ISSUE: ${{ github.event.issue.number || inputs.issue }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Read the report
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE" > "$RUNNER_TEMP/issue.json"
+      - name: Extract the report
+        id: extract
+        run: python3 .github/scripts/extract_report.py "$RUNNER_TEMP/issue.json"
+      - name: Review with Claude
+        if: steps.extract.outputs.valid == 'true'
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ github.token }}
+          prompt: >-
+            Read .github/agent/profile-agent.md and follow it exactly. The report is in
+            .agent/report.json and the issue number in .agent/issue.txt.
+          claude_args: >-
+            --max-turns 40
+            --allowedTools "Read,Glob,Grep,Edit(profiles/profiles.json),Edit(DEVICES.md),Write(.agent/summary.md),Edit(.agent/summary.md),Bash(python3 .github/scripts/check_profiles.py),Bash(python3 .github/scripts/check_profiles.py --fix)"
+            --disallowedTools "WebFetch,WebSearch"
+      - name: Keep the result
+        if: steps.extract.outputs.valid == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-result
+          include-hidden-files: true
+          if-no-files-found: error
+          path: |
+            profiles/profiles.json
+            DEVICES.md
+            .agent/summary.md
+
+  propose:
+    needs: evaluate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      ISSUE: ${{ github.event.issue.number || inputs.issue }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: No usable report
+        if: needs.evaluate.outputs.valid != 'true'
+        run: gh issue comment "$ISSUE" --body "This report has no usable button mapping, so the agent did not review it."
+      - uses: actions/download-artifact@v4
+        if: needs.evaluate.outputs.valid == 'true'
+        with:
+          name: agent-result
+          path: ${{ runner.temp }}/agent
+      - name: Validate and propose
+        if: needs.evaluate.outputs.valid == 'true'
+        run: |
+          # take over only the two files the agent may change
+          cp "$RUNNER_TEMP/agent/profiles/profiles.json" profiles/profiles.json
+          cp "$RUNNER_TEMP/agent/DEVICES.md" DEVICES.md
+          python3 .github/scripts/sanitize_summary.py "$RUNNER_TEMP/agent/.agent/summary.md" > "$RUNNER_TEMP/summary.md"
+          if ! python3 .github/scripts/check_profiles.py > "$RUNNER_TEMP/check.txt"; then
+            { echo "The agent's proposal failed the profile check, so no pull request was opened."; echo
+              echo '```'; cat "$RUNNER_TEMP/check.txt"; echo '```'; } > "$RUNNER_TEMP/comment.md"
+            gh issue comment "$ISSUE" --body-file "$RUNNER_TEMP/comment.md"
+            exit 1
+          fi
+          if git diff --quiet; then
+            gh issue comment "$ISSUE" --body-file "$RUNNER_TEMP/summary.md"
+            exit 0
+          fi
+          branch="profile/report-$ISSUE"
+          if git ls-remote --exit-code --heads origin "$branch" >/dev/null; then
+            branch="$branch-$GITHUB_RUN_ID"
+          fi
+          title="Profiles from report #$ISSUE"
+          { cat "$RUNNER_TEMP/summary.md"; echo; echo "Closes #$ISSUE"; } > "$RUNNER_TEMP/pr.md"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git commit -qam "$title"
+          git push -q origin "$branch"
+          url=$(gh pr create --head "$branch" --title "$title" --body-file "$RUNNER_TEMP/pr.md" --label device-report)
+          gh issue comment "$ISSUE" --body "The agent proposed a profile change: $url"

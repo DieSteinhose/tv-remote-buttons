@@ -6,6 +6,11 @@ import profiles_lib as lib
 text = lib.PROFILES.read_text()
 data = lib.load()
 errors = lib.problems(data)
+# every profile needs its section in DEVICES.md
+devices = (lib.ROOT / "DEVICES.md").read_text() if (lib.ROOT / "DEVICES.md").exists() else ""
+for p in data.get("profiles", []):
+    if f"## {p.get('id')}\n" not in devices:
+        errors.append(f"{p.get('id')}: missing section '## {p.get('id')}' in DEVICES.md")
 if text != lib.dump(data):
     errors.append("profiles.json is not canonically formatted - run: python3 .github/scripts/check_profiles.py --fix")
     if "--fix" in sys.argv:

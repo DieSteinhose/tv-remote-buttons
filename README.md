@@ -27,6 +27,7 @@ navigation. Its UI is available in English and German.
 - **Device profiles from this repository.** On first start the app detects the TV and its remote and
   recommends a matching profile that already knows the buttons. Profiles are downloaded from
   [`profiles/profiles.json`](profiles/profiles.json) at startup, so new TVs need no new app version.
+  See **[supported devices](DEVICES.md)**.
 - **Teaching buttons.** Press the button, then pick its type (Live TV, Netflix, YouTube, Settings,
   Input, …). The type sets the name and suggests a target.
 - **Upload buttons.** Press the special buttons of your remote in any order and pick what is printed
@@ -85,8 +86,10 @@ installed app. Builds with another key cannot update an installed release.
   ./release.sh ["release notes"]   # pushes the tag v<versionName>; Actions does the rest
   ```
 
-- [`report-to-profile.yml`](.github/workflows/report-to-profile.yml) turns device reports into
-  profile pull requests (see below).
+- [`report-agent.yml`](.github/workflows/report-agent.yml) reviews device reports with Claude and
+  proposes profile pull requests (see below);
+  [`report-to-profile.yml`](.github/workflows/report-to-profile.yml) is a deterministic fallback
+  that can be run by hand.
 
 ## Install and enable
 
@@ -143,16 +146,12 @@ the APK. A profile defines:
 Check changes with `python3 .github/scripts/check_profiles.py` (`--fix` applies the canonical
 formatting); CI runs the same check.
 
-Included profiles:
-
-| Profile | Devices | Notes |
-|---|---|---|
-| `chiq_mt58` | CHiQ Google TV with MediaTek MT58xx (tested: GTVU65, Android 14) | Bluetooth remote `TVC0GWBT`; the remote sends `MEDIA_SKIP_FORWARD` after every button as a release marker, so that key is protected. |
-| `philips_tpv` | Philips Google TV by TP Vision (tested: 65OLED888/12, MediaTek mt5896, Android 12) | Remotes `TPV_MutilRC`/`TPV_SMTRC`. App buttons are Philips global keys: the TV still runs their factory function even when the app intercepts them. TV button and microphone share keycode 811. |
+The supported TVs, their buttons and quirks are listed in **[DEVICES.md](DEVICES.md)**; every
+profile needs a section there (the check enforces it).
 
 The easiest way to add a TV is **Upload buttons** in the app: the report becomes an issue, the
-workflow opens a pull request with the generated profile, and after review and merge every app
-picks it up on its next start. Manual edits and pull requests are welcome too; to see keycodes:
+report agent opens a pull request that extends `profiles.json` and `DEVICES.md`, and after review
+and merge every app picks it up on its next start. Manual edits and pull requests are welcome too; to see keycodes:
 
 ```sh
 adb shell setprop log.tag.RemoteButtons DEBUG
@@ -173,9 +172,16 @@ needs no account. The worker checks size and structure, accepts at most 5 reques
 IP address and one report per TV model and IP address per day (it stores only a SHA-256 hash of
 both, for 24 hours), and renders all report text as code so it cannot add links or mentions.
 
-The [report-to-profile workflow](.github/workflows/report-to-profile.yml) then extends the profile
-the app used or detected, or creates a new one, and opens a pull request; if the profile already
-covers every mapped button it just comments on the issue.
+The [report agent](.github/workflows/report-agent.yml) then reviews the report with Claude
+(instructions: [`.github/agent/profile-agent.md`](.github/agent/profile-agent.md)): it checks the
+mapping for plausibility, extends the profile the app used or detected or creates a new one, updates
+[DEVICES.md](DEVICES.md) and opens a pull request with its assessment; if nothing needs to change it
+just comments on the issue. Because reports are anonymous input, the agent runs with a read-only
+token and no git credentials and may only edit those two files and run the profile check; a second
+job validates the result and opens the pull request. The agent needs the repository secret
+`CLAUDE_CODE_OAUTH_TOKEN` (`claude setup-token`, Claude Pro/Max) or can be switched to
+`ANTHROPIC_API_KEY`. The deterministic
+[report-to-profile workflow](.github/workflows/report-to-profile.yml) remains as a manual fallback.
 
 A report contains:
 

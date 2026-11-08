@@ -4,7 +4,10 @@
   (`res/values`) and German (`res/values-de`); keep both in sync.
 - Device profiles live in `profiles/profiles.json` (loaded by the app at runtime from GitHub, a copy
   is bundled into the APK). Check with `python3 .github/scripts/check_profiles.py` (`--fix` formats).
-  New TVs need a profile change, not a new app version.
+  New TVs need a profile change, not a new app version. Every profile needs a section in
+  `DEVICES.md` (the supported-devices list, linked from the README); the check enforces it.
+- Device reports (issues labeled `device-report`) are reviewed by `report-agent.yml` (Claude,
+  instructions in `.github/agent/profile-agent.md`), which proposes profile pull requests.
 - Build with `./build.sh`. Local `signing.env` (git-ignored) points to the release key
   `~/.android/tv-remote-buttons.jks`, the same key as the GitHub secrets `SIGNING_*`. Never commit
   keys, `signing.env` or `worker/.wrangler/`.
