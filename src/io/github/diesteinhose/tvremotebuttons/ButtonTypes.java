@@ -1,4 +1,4 @@
-package local.chiq.keys;
+package io.github.diesteinhose.tvremotebuttons;
 
 import android.content.Context;
 import android.content.pm.PackageManager;

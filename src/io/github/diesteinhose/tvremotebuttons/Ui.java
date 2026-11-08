@@ -1,4 +1,4 @@
-package local.chiq.keys;
+package io.github.diesteinhose.tvremotebuttons;
 
 import android.app.Activity;
 import android.content.res.ColorStateList;

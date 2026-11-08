@@ -7,7 +7,7 @@
     <string name="status_on">Dienst aktiv</string>
     <string name="status_off">Dienst nicht aktiv</string>
     <string name="main_hint">Wähle eine Taste, um festzulegen, was sie tut. Änderungen gelten sofort.</string>
-    <string name="service_off_hint">Schalte „%1$s“ unter Einstellungen › Bedienungshilfen ein. Oder per adb:\n\nsettings put secure enabled_accessibility_services local.chiq.keys/.KeyService\n\nsettings put secure accessibility_enabled 1</string>
+    <string name="service_off_hint">Schalte „%1$s“ unter Einstellungen › Bedienungshilfen ein. Oder per adb:\n\nsettings put secure enabled_accessibility_services io.github.diesteinhose.tvremotebuttons/.KeyService\n\nsettings put secure accessibility_enabled 1</string>
     <string name="enable_service">Dienst einschalten</string>
     <string name="enable_service_sub">Öffnet die Bedienungshilfen</string>
     <string name="section_buttons">Tasten</string>
@@ -26,7 +26,6 @@
     <string name="section_recommended">Empfohlenes Profil</string>
     <string name="profile_keys">%1$d Tasten: %2$s</string>
     <string name="use_profile">Profil übernehmen</string>
-    <string name="use_profile_sub">Empfohlen für diesen Fernseher</string>
     <string name="no_profile">Kein Profil</string>
     <string name="no_profile_sub">Tasten selbst anlernen</string>
     <string name="start_without_profile">Ohne Profil starten</string>
@@ -124,7 +123,7 @@
     <string name="b_missing">Fehlt</string>
     <string name="b_active">Aktiv</string>
 
-    <string name="ha_body">Basis-Adresse für die Webhooks. Eine Taste mit dem Ziel „Home Assistant“ ruft &lt;Adresse&gt;/api/webhook/chiq_tv_&lt;taste&gt; auf.</string>
+    <string name="ha_body">Basis-Adresse für die Webhooks. Eine Taste mit dem Ziel „Home Assistant“ ruft &lt;Adresse&gt;/api/webhook/tv_remote_&lt;taste&gt; auf.</string>
     <string name="section_address">Adresse</string>
     <string name="section_default">Standard</string>
     <string name="restore_default">Standard wiederherstellen</string>
@@ -189,8 +188,6 @@
     <string name="upload_body">Schick die Tasten deiner Fernbedienung an den Entwickler, damit die App diesen Fernseher und seine Fernbedienung künftig erkennt. Vorher ordnest du die Tasten zu: welche Taste Netflix, YouTube, Live TV usw. ist.\n\nGesendet werden: Fernsehermodell und Android-Version, deine Fernbedienungen (Name, Hersteller- und Produkt-ID) und die Tastenzuordnung (Keycodes, Typen, eigene Namen). Nicht gesendet werden: deine Apps, Belegungen und Adressen.\n\nDie Meldung erscheint öffentlich als Issue auf GitHub. Eine Meldung pro Fernseher und Tag.</string>
     <string name="section_sent">Was gesendet wird</string>
     <string name="upload_remote_none">Keine Fernbedienung gefunden</string>
-    <string name="upload_keys">%1$d Tasten</string>
-    <string name="upload_keys_none">Noch keine Tasten – lerne sie zuerst mit „Taste hinzufügen“ an</string>
     <string name="section_note">Notiz (optional)</string>
     <string name="note_hint">z. B. welche Taste fehlt oder wie sie beschriftet ist</string>
     <string name="upload_send">Hochladen</string>

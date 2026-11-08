@@ -98,7 +98,7 @@ Open **TV Remote Buttons** from the app list. If the service is not running yet,
 **Turn on service**, which opens *Settings › Accessibility*. You can also enable it via adb:
 
 ```sh
-adb shell settings put secure enabled_accessibility_services local.chiq.keys/.KeyService
+adb shell settings put secure enabled_accessibility_services io.github.diesteinhose.tvremotebuttons/.KeyService
 adb shell settings put secure accessibility_enabled 1
 ```
 
@@ -133,7 +133,7 @@ the APK. A profile defines:
 - how it matches: TV `brand` and `hardware` prefix, and/or `remotes` (input device name prefix,
   vendor and product ID); a profile matching TV and remote wins over one matching only one of them,
 - the buttons of the remote: `key` (Android keycode name without `KEYCODE_`), `type` (see
-  [`ButtonTypes.java`](src/local/chiq/keys/ButtonTypes.java)), `default` target and an optional
+  [`ButtonTypes.java`](src/io/github/diesteinhose/tvremotebuttons/ButtonTypes.java)), `default` target and an optional
   localized `name`,
 - the live TV activity (`liveTv`), whether the program guide can be opened (`epg`),
 - extra keys that must never be intercepted (`protect`),
@@ -196,14 +196,14 @@ npx wrangler deploy                    # prints https://tv-remote-buttons.<accou
 ```
 
 Set `REPO` in `worker/wrangler.toml` to your repository and `Report.URL` in
-[`Report.java`](src/local/chiq/keys/Report.java) to `<worker URL>/report`, create the label
+[`Report.java`](src/io/github/diesteinhose/tvremotebuttons/Report.java) to `<worker URL>/report`, create the label
 (`gh label create device-report`) and allow GitHub Actions to create pull requests in the
 repository settings.
 
 ## Home Assistant
 
 Choose **Home Assistant** as a target. The button then sends a POST to
-`<address>/api/webhook/chiq_tv_<button>`, with `_double` or `_long` appended for press twice and
+`<address>/api/webhook/tv_remote_<button>`, with `_double` or `_long` appended for press twice and
 hold. The address defaults to `http://homeassistant.local:8123` and can be changed on the overview.
 
 Payload:
@@ -217,7 +217,7 @@ Example automation trigger:
 ```yaml
 triggers:
   - trigger: webhook
-    webhook_id: chiq_tv_button_5
+    webhook_id: tv_remote_button_5
     allowed_methods: [POST]
     local_only: true
 ```
@@ -230,10 +230,10 @@ The `ConfigReceiver` accepts broadcasts from the shell only (it requires `androi
 Every broadcast prints the current configuration.
 
 ```sh
-R="am broadcast -n local.chiq.keys/.ConfigReceiver"
+R="am broadcast -n io.github.diesteinhose.tvremotebuttons/.ConfigReceiver"
 adb shell $R                                              # show configuration
 adb shell $R --es profile auto                            # detected profile (or an id, or none)
-adb shell $R --ei key 247 --es target org.smarttube.stable
+adb shell $R --ei key 247 --es target com.google.android.youtube.tv
 adb shell $R --ei key 192 --es action long --es target @ha
 adb shell $R --ei key 192 --es target default             # back to the profile default
 adb shell $R --ei test 192                                # trigger a button's target
@@ -264,5 +264,3 @@ Target notation:
 - Key presses injected with `adb shell input keyevent` bypass accessibility key filtering. Test with
   the real remote, or use `--ei test <keycode>`.
 - The program guide shortcut currently works with the MediaTek live TV app (`chiq_mt58` profile).
-- The package name `local.chiq.keys` and the webhook prefix `chiq_tv_` date back to the first device
-  this was written for. They are kept so that existing installations and webhooks keep working.

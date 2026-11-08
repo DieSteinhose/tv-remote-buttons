@@ -9,7 +9,7 @@
     <string name="status_on">Service active</string>
     <string name="status_off">Service not active</string>
     <string name="main_hint">Choose a button to set what it does. Changes apply immediately.</string>
-    <string name="service_off_hint">Turn on “%1$s” under Settings › Accessibility. Or via adb:\n\nsettings put secure enabled_accessibility_services local.chiq.keys/.KeyService\n\nsettings put secure accessibility_enabled 1</string>
+    <string name="service_off_hint">Turn on “%1$s” under Settings › Accessibility. Or via adb:\n\nsettings put secure enabled_accessibility_services io.github.diesteinhose.tvremotebuttons/.KeyService\n\nsettings put secure accessibility_enabled 1</string>
     <string name="enable_service">Turn on service</string>
     <string name="enable_service_sub">Opens the accessibility settings</string>
     <string name="section_buttons">Buttons</string>
@@ -29,7 +29,6 @@
     <string name="section_recommended">Recommended profile</string>
     <string name="profile_keys">%1$d buttons: %2$s</string>
     <string name="use_profile">Use profile</string>
-    <string name="use_profile_sub">Recommended for this TV</string>
     <string name="no_profile">No profile</string>
     <string name="no_profile_sub">Teach buttons yourself</string>
     <string name="start_without_profile">Start without profile</string>
@@ -132,7 +131,7 @@
     <string name="b_active">Active</string>
 
     <!-- Home Assistant address -->
-    <string name="ha_body">Base address for the webhooks. A button with the target “Home Assistant” calls &lt;address&gt;/api/webhook/chiq_tv_&lt;button&gt;.</string>
+    <string name="ha_body">Base address for the webhooks. A button with the target “Home Assistant” calls &lt;address&gt;/api/webhook/tv_remote_&lt;button&gt;.</string>
     <string name="section_address">Address</string>
     <string name="section_default">Default</string>
     <string name="restore_default">Restore default</string>
@@ -202,8 +201,6 @@
     <string name="upload_body">Send the buttons of your remote to the developer so that the app can recognize this TV and its remote in the future. First you map the buttons: which button is Netflix, YouTube, Live TV and so on.\n\nSent: TV model and Android version, your remotes (name, vendor and product ID) and the button mapping (keycodes, types, own names). Not sent: your apps, assignments or addresses.\n\nThe report becomes a public issue on GitHub. One report per TV and day.</string>
     <string name="section_sent">What is sent</string>
     <string name="upload_remote_none">No remote found</string>
-    <string name="upload_keys">%1$d buttons</string>
-    <string name="upload_keys_none">No buttons yet – teach them first with “Add button”</string>
     <string name="section_note">Note (optional)</string>
     <string name="note_hint">e.g. which button is missing or what it is labeled</string>
     <string name="upload_send">Upload</string>

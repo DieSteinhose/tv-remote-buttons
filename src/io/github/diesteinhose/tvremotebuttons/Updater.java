@@ -1,4 +1,4 @@
-package local.chiq.keys;
+package io.github.diesteinhose.tvremotebuttons;
 
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;

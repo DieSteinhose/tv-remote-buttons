@@ -1,4 +1,4 @@
-package local.chiq.keys;
+package io.github.diesteinhose.tvremotebuttons;
 
 import android.content.ComponentName;
 import android.content.Context;
@@ -25,7 +25,7 @@ import java.util.TreeSet;
  *   LIVE_TV              the device's live TV app (from the profile, otherwise known apps)
  *   EPG                  program guide of the live TV app (profiles with epg only; press again to close)
  *   HOME                 home screen
- *   HA                   Home Assistant webhook <HA address>/api/webhook/chiq_tv_<button>
+ *   HA                   Home Assistant webhook <HA address>/api/webhook/tv_remote_<button>
  *   "http(s)://..."      webhook: HTTP POST with JSON {key, keycode, action, name, device}
  *   NONE                 swallow the key (do nothing)
  *   SYSTEM               leave the key alone (factory behavior)
@@ -346,9 +346,9 @@ final class KeyMap {
         return prefs(c).getString("ha_url", HA_URL);
     }
 
-    /** Webhook ID for Home Assistant: chiq_tv_<button>, with _double/_long for press twice / hold. */
+    /** Webhook ID for Home Assistant: tv_remote_<button>, with _double/_long for press twice / hold. */
     static String webhookId(int code, int action) {
-        return "chiq_tv_" + label(code).toLowerCase(java.util.Locale.ROOT)
+        return "tv_remote_" + label(code).toLowerCase(java.util.Locale.ROOT)
                 + (action == SINGLE ? "" : "_" + ACTION_NAME[action]);
     }
 
