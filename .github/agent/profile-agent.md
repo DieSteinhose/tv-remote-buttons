@@ -58,6 +58,18 @@ optional `label` the user typed, e.g. "Subtitles"), `keys` (buttons known to the
    (`virtual-*`, `mediatek,cec`, keypads).
    - Same remote as an existing remote profile (input matches): extend that profile with new
      buttons; add the TV to its notes / the TV's `remotes`.
+   - **Infrared via the TV's receiver.** Many remotes send via Bluetooth and fall back to infrared
+     (or are infrared only). Infrared buttons arrive via an input device that belongs to the TV,
+     not to the remote (e.g. `MStar Smart TV IR Receiver`, `MTK PMU IR`, `TPV_MutilRC`); the same
+     receiver is built into many TVs of other brands, and the TV software decides the keycodes. So:
+     - If the keycodes (and button types) of the report match an existing remote profile used on
+       this TV, it is the same remote: add the IR receiver to that profile's `match.inputs`, add
+       its new buttons, and set `match.tvs` to the TV profile(s) where this was seen. Do not create
+       a new remote profile.
+     - Only if the keycodes do not match any known remote of this TV, create a new remote profile
+       for the IR receiver, and always limit it with `match.tvs` to this TV profile.
+     - Never create an unrestricted remote profile whose only input is a TV's IR receiver or another
+       generic input device: it would claim every infrared remote on every TV with that chip.
    - A new remote: create a remote profile. Id: lowercase vendor and model or family
      (`chiq_tvc0gwbt`, `philips_tpv_rc`). Use vendor/product only if they are not `0x0000`.
    - The same remote with different keycodes on another TV: create a second remote profile for the

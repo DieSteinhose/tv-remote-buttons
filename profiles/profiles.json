@@ -5,7 +5,7 @@
     {
       "id": "chiq_mt58",
       "title": "CHiQ Google TV (MediaTek)",
-      "notes": "Tested: GTVU65, Android 14. Live TV, Guide and Settings buttons get own targets because their factory functions are broken. Bluetooth remote of CHiQ Google TVs (tested on GTVU65). It sends MEDIA_SKIP_FORWARD after every button as a release marker, so that key is protected.",
+      "notes": "Tested: GTVU65, Android 14. Live TV, Guide and Settings buttons get own targets because their factory functions are broken. Remote of CHiQ Google TVs (tested on GTVU65). It sends via Bluetooth (TVC0GWBT) and, without a Bluetooth connection, via infrared to the TV's IR receiver (MStar Smart TV IR Receiver) with the same keycodes. Via Bluetooth it sends MEDIA_SKIP_FORWARD after every button as a release marker, so that key is protected. Limited to CHiQ TVs because the IR receiver is built into many MediaTek TVs whose software maps infrared codes differently.",
       "match": {
         "brand": [
           "CHiQ",
@@ -17,6 +17,11 @@
             "name": "TVC0GWBT",
             "vendor": "0x1d5a",
             "product": "0xc082"
+          },
+          {
+            "name": "MStar Smart TV IR Receiver",
+            "vendor": "0x3697",
+            "product": "0x0001"
           }
         ]
       },
@@ -77,6 +82,24 @@
           "name": {
             "en": "USB",
             "de": "USB"
+          }
+        },
+        {
+          "key": "TV_RADIO_SERVICE",
+          "type": "assistant",
+          "default": "@system",
+          "name": {
+            "en": "Microphone",
+            "de": "Mikrofon"
+          }
+        },
+        {
+          "key": "PROFILE_SWITCH",
+          "type": "other",
+          "default": "@system",
+          "name": {
+            "en": "Switch profile",
+            "de": "Profil wechseln"
           }
         }
       ]

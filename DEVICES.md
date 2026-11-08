@@ -21,15 +21,18 @@ report, extends the profiles and this list, and opens a pull request.
 
 | Remote | Profile | Works with | Buttons |
 |---|---|---|---|
-| [CHiQ Bluetooth remote TVC0GWBT](#chiq_tvc0gwbt) | `chiq_tvc0gwbt` | [CHiQ Google TV](#chiq_mt58) | 9 |
+| [CHiQ remote TVC0GWBT](#chiq_tvc0gwbt) | `chiq_tvc0gwbt` | [CHiQ Google TV](#chiq_mt58) | 11 |
 | [Philips remote (TP Vision)](#philips_tpv_rc) | `philips_tpv_rc` | [Philips TV](#philips_tpv) | 4 |
 
 ### chiq_tvc0gwbt
 
-**CHiQ Bluetooth remote TVC0GWBT** - input device `TVC0GWBT` (vendor `0x1d5a`, product `0xc082`)
+**CHiQ remote TVC0GWBT (Bluetooth and infrared)** - Bluetooth input device `TVC0GWBT` (vendor
+`0x1d5a`, product `0xc082`); without a Bluetooth connection the same buttons arrive via infrared at
+the TV's `MStar Smart TV IR Receiver` (`0x3697`/`0x0001`) with the same keycodes
 
-- Tested with: [CHiQ Google TV](#chiq_mt58) GTVU65
-- Reports: #2
+- Tested with: [CHiQ Google TV](#chiq_mt58) GTVU65 (Bluetooth: #2, infrared: #7)
+- Limited to CHiQ TVs (`match.tvs`): the IR receiver is built into many MediaTek TVs, whose software
+  maps infrared codes differently
 
 | Button | Key | Type | Default |
 |---|---|---|---|
@@ -42,10 +45,13 @@ report, extends the profiles and this list, and opens a pull request.
 | Settings | `NOTIFICATION` | settings | TV settings |
 | Custom button | `BUTTON_5` | free | factory |
 | USB | `REFRESH` | media | factory |
+| Microphone | `TV_RADIO_SERVICE` | assistant | factory |
+| Switch profile | `PROFILE_SWITCH` | other | factory |
 
-Notes: the remote sends `MEDIA_SKIP_FORWARD` after every button as a release marker, so that key is
-protected. YouTube, Netflix and Prime work out of the box; Live TV, Guide and Settings get own
-targets because their factory functions are broken on the CHiQ TV.
+Notes: via Bluetooth the remote sends `MEDIA_SKIP_FORWARD` after every button as a release marker,
+so that key is protected (via infrared there is no marker). YouTube, Netflix and Prime work out of
+the box; Live TV, Guide and Settings get own targets because their factory functions are broken on
+the CHiQ TV.
 
 ### philips_tpv_rc
 
@@ -76,9 +82,9 @@ only be assigned together; by default both keep their factory function.
 
 **CHiQ Google TV (MediaTek)** - brand CHiQ / Changhong, hardware `mt58…`
 
-- Tested: GTVU65 (model `AI PONT`, Android 14)
+- Tested: GTVU65 (model `AI PONT`, hardware `mt5867`, Android 14; reports #2, #7)
 - Live TV: `com.mediatek.wwtv.tvcenter` (MediaTek), program guide supported
-- Remotes: [TVC0GWBT](#chiq_tvc0gwbt)
+- Remotes: [TVC0GWBT](#chiq_tvc0gwbt) (Bluetooth and infrared)
 
 ### philips_tpv
 
