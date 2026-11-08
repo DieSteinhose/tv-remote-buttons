@@ -55,6 +55,7 @@ jobs:
             Read .github/agent/profile-agent.md and follow it exactly. The report is in
             .agent/report.json and the issue number in .agent/issue.txt.
           claude_args: >-
+            --model claude-haiku-5-5
             --max-turns 40
             --allowedTools "Read,Glob,Grep,Edit(profiles/profiles.json),Edit(DEVICES.md),Write(.agent/summary.md),Edit(.agent/summary.md),Bash(python3 .github/scripts/check_profiles.py),Bash(python3 .github/scripts/check_profiles.py --fix)"
             --disallowedTools "WebFetch,WebSearch"
