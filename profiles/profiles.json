@@ -79,6 +79,51 @@
           }
         }
       ]
+    },
+    {
+      "id": "philips_tpv",
+      "title": "Philips Google TV (TPV)",
+      "notes": "From device report #3. Tested: Philips Google TV TA1 (PH1M_WW_9972, MediaTek mt5896, Android 12). The app buttons are Philips global keys: the TV still runs their factory function (e.g. the Play Store page of a disabled app) even when the app intercepts them. The TV button and the microphone both send keycode 811 (scan codes 0x2ff and 0xd9), so they can only be assigned together; by default both keep their factory function.",
+      "match": {
+        "brand": [
+          "Philips"
+        ],
+        "remotes": [
+          {
+            "name": "TPV_MutilRC"
+          },
+          {
+            "name": "TPV_SMTRC"
+          }
+        ]
+      },
+      "liveTv": "org.droidtv.playtv/org.droidtv.playtv.PlayTvActivity",
+      "keys": [
+        {
+          "key": "811",
+          "type": "livetv",
+          "default": "@system",
+          "name": {
+            "en": "TV button (also microphone)",
+            "de": "TV-Taste (auch Mikrofon)"
+          }
+        },
+        {
+          "key": "NETFLIX",
+          "type": "netflix",
+          "default": "@system"
+        },
+        {
+          "key": "781",
+          "type": "youtube",
+          "default": "@system"
+        },
+        {
+          "key": "788",
+          "type": "prime",
+          "default": "@system"
+        }
+      ]
     }
   ]
 }
