@@ -177,7 +177,7 @@
     <string name="section_help">Mithelfen</string>
     <string name="upload_row">Tasten hochladen</string>
     <string name="upload_row_sub">Hilft, ein Profil für diesen Fernseher anzulegen – ohne Konto</string>
-    <string name="upload_body">Schick die Tasten deiner Fernbedienung an den Entwickler, damit die App diesen Fernseher und seine Fernbedienung künftig erkennt. Vorher ordnest du die Tasten zu: welche Taste Netflix, YouTube, Live TV usw. ist.\n\nGesendet werden: Fernsehermodell und Android-Version, deine Fernbedienungen (Name, Hersteller- und Produkt-ID) und die Tastenzuordnung (Keycodes, Typen, eigene Namen). Nicht gesendet werden: deine Apps, Belegungen und Adressen.\n\nDie Meldung erscheint öffentlich als Issue auf GitHub. Eine Meldung pro Fernseher und Tag.</string>
+    <string name="upload_body">Schick die Tasten deiner Fernbedienung an den Entwickler, damit die App diesen Fernseher und seine Fernbedienung künftig erkennt. Vorher ordnest du die Tasten zu: welche Taste Netflix, YouTube, Live TV usw. ist.\n\nGesendet werden: Fernsehermodell und Android-Version, deine Fernbedienungen (Name, Hersteller- und Produkt-ID), die Tastenzuordnung (Keycodes, Typen und die Namen, die du für andere Tasten eingibst) und deine Notiz. Nicht gesendet werden: deine Apps, Belegungen, Adressen und die Namen deiner Tasten in der Übersicht.\n\nDie Meldung erscheint öffentlich als Issue auf GitHub. Eine Meldung pro Fernseher und Tag.</string>
     <string name="section_sent">Was gesendet wird</string>
     <string name="upload_remote_none">Keine Fernbedienung gefunden</string>
     <string name="section_note">Notiz (optional)</string>
@@ -266,4 +266,11 @@
     <string name="tv_list_title">Fernseher wählen</string>
     <string name="tv_list_body">Der Fernseher wird normalerweise automatisch erkannt. Wähle hier nur, wenn die Erkennung falsch ist.</string>
     <string name="tv_label">Fernseher: %1$s</string>
+    <string name="button_name_eyebrow">Andere Taste · %1$s</string>
+    <string name="button_name_title">Was ist das für eine Taste?</string>
+    <string name="button_name_body">Zum Beispiel „Rot“, „Untertitel“, „Ambilight“ oder was ihr Symbol zeigt. Der Name erscheint in der Übersicht und hilft beim Profil für deine Fernbedienung.</string>
+    <string name="button_name_hint">z. B. Untertitel</string>
+    <string name="button_name_skip">Ohne Namen weiter</string>
+    <string name="section_labels">Deine Texte (öffentlich)</string>
+    <string name="upload_labels_note">Diese Namen hast du für andere Tasten eingegeben, sie erscheinen in der öffentlichen Meldung. Auswählen zum Ändern.</string>
 </resources>

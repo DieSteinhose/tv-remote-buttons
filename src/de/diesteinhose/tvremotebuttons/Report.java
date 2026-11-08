@@ -125,8 +125,7 @@ final class Report {
                         .put("source", e.builtin ? "profile" : "taught");
                 ButtonTypes.Type t = KeyMap.type(c, e.code);
                 if (t != null) k.put("type", t.id);
-                String own = KeyMap.prefs(c).getString("n" + e.code, null);
-                if (own != null) k.put("name", own);
+                // own names from the overview are not sent (may be private); see mapping[].label
                 int scan = KeyMap.prefs(c).getInt("s" + e.code, -1);
                 if (scan >= 0) k.put("scan", "0x" + Integer.toHexString(scan));
                 String src = KeyMap.prefs(c).getString("r" + e.code, null);

@@ -34,6 +34,10 @@ export default {
     }
     const problem = validate(report);
     if (problem) return reply({ error: problem }, 400);
+    // Own button names from the app's overview may be private (e.g. "Living room light") and are
+    // not needed for profiles; app versions up to 1.7 still send them. Only the labels typed for
+    // the report (mapping[].label) are published.
+    for (const k of report.keys) delete k.name;
 
     const d = report.device;
     const seenKey = await sha256(
@@ -122,18 +126,18 @@ function body(r) {
   lines.push("");
   lines.push("### Button mapping");
   lines.push("");
-  lines.push("| Type | Keycode | Key | Scan code | Remote | Vendor | Product |");
-  lines.push("|---|---|---|---|---|---|---|");
+  lines.push("| Type | Label | Keycode | Key | Scan code | Remote | Vendor | Product |");
+  lines.push("|---|---|---|---|---|---|---|---|");
   for (const m of r.mapping) {
-    lines.push(`| ${cell(m.type)} | ${cell(m.keycode)} | ${cell(m.key)} | ${cell(m.scan)} | ${cell(m.remote)} | ${cell(m.vendor)} | ${cell(m.product)} |`);
+    lines.push(`| ${cell(m.type)} | ${cell(m.label, 40)} | ${cell(m.keycode)} | ${cell(m.key)} | ${cell(m.scan)} | ${cell(m.remote)} | ${cell(m.vendor)} | ${cell(m.product)} |`);
   }
   lines.push("");
   lines.push("### Buttons known to the app");
   lines.push("");
-  lines.push("| Keycode | Key | Type | Own name | Scan code | Remote | Source |");
-  lines.push("|---|---|---|---|---|---|---|");
+  lines.push("| Keycode | Key | Type | Scan code | Remote | Source |");
+  lines.push("|---|---|---|---|---|---|");
   for (const k of r.keys) {
-    lines.push(`| ${cell(k.keycode)} | ${cell(k.key)} | ${cell(k.type)} | ${cell(k.name)} | ${cell(k.scan)} | ${cell(k.remote)} | ${cell(k.source)} |`);
+    lines.push(`| ${cell(k.keycode)} | ${cell(k.key)} | ${cell(k.type)} | ${cell(k.scan)} | ${cell(k.remote)} | ${cell(k.source)} |`);
   }
   if (r.note) {
     lines.push("", "**Note:**", "```text", String(r.note).replace(/`/g, "'").slice(0, 2000), "```");

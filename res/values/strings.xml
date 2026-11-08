@@ -190,7 +190,7 @@
     <string name="section_help">Help improve</string>
     <string name="upload_row">Upload buttons</string>
     <string name="upload_row_sub">Helps to add a profile for this TV – no account needed</string>
-    <string name="upload_body">Send the buttons of your remote to the developer so that the app can recognize this TV and its remote in the future. First you map the buttons: which button is Netflix, YouTube, Live TV and so on.\n\nSent: TV model and Android version, your remotes (name, vendor and product ID) and the button mapping (keycodes, types, own names). Not sent: your apps, assignments or addresses.\n\nThe report becomes a public issue on GitHub. One report per TV and day.</string>
+    <string name="upload_body">Send the buttons of your remote to the developer so that the app can recognize this TV and its remote in the future. First you map the buttons: which button is Netflix, YouTube, Live TV and so on.\n\nSent: TV model and Android version, your remotes (name, vendor and product ID), the button mapping (keycodes, types and the names you type for other buttons) and your note. Not sent: your apps, assignments, addresses or the names of your buttons in the overview.\n\nThe report becomes a public issue on GitHub. One report per TV and day.</string>
     <string name="section_sent">What is sent</string>
     <string name="upload_remote_none">No remote found</string>
     <string name="section_note">Note (optional)</string>
@@ -281,4 +281,11 @@
     <string name="tv_list_title">Choose TV</string>
     <string name="tv_list_body">The TV is normally detected automatically. Only choose here if the detection is wrong.</string>
     <string name="tv_label">TV: %1$s</string>
+    <string name="button_name_eyebrow">Other button · %1$s</string>
+    <string name="button_name_title">What is this button?</string>
+    <string name="button_name_body">For example “Red”, “Subtitles”, “Ambilight” or what its symbol shows. The name appears in the overview and helps to build the profile for your remote.</string>
+    <string name="button_name_hint">e.g. Subtitles</string>
+    <string name="button_name_skip">Continue without a name</string>
+    <string name="section_labels">Your texts (public)</string>
+    <string name="upload_labels_note">These names you typed for other buttons appear in the public report. Select one to change it.</string>
 </resources>

@@ -5,8 +5,8 @@
      targets. No other background service. Texts: English (values) and German (values-de). -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="de.diesteinhose.tvremotebuttons"
-    android:versionCode="8"
-    android:versionName="1.7">
+    android:versionCode="9"
+    android:versionName="1.8">
 
     <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="34" />
     <uses-feature android:name="android.software.leanback" android:required="false" />

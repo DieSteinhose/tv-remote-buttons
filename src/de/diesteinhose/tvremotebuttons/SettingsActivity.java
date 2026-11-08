@@ -663,6 +663,21 @@ public class SettingsActivity extends Activity {
             right.addView(r);
         }
 
+        // Texts the user typed for "other" buttons: published with the report, so show them
+        List<org.json.JSONObject> labeled = new ArrayList<>();
+        for (int i = 0; mapping != null && i < mapping.length(); i++) {
+            org.json.JSONObject o = mapping.optJSONObject(i);
+            if (o != null && !o.optString("label").isEmpty()) labeled.add(o);
+        }
+        if (!labeled.isEmpty()) {
+            right.addView(ui.section(s(R.string.section_labels)));
+            right.addView(ui.note(s(R.string.upload_labels_note)));
+            for (org.json.JSONObject o : labeled) {
+                right.addView(ui.row(null, R.drawable.ic_edit, C_INTENT, "„" + o.optString("label") + "“",
+                        s(R.string.button_name_eyebrow, keyText(o)), null, 0, this::startMapping));
+            }
+        }
+
         right.addView(ui.section(s(R.string.section_note)));
         EditText note = ui.textField(drafts.containsKey("note") ? drafts.get("note") : "", s(R.string.note_hint), false);
         note.addTextChangedListener(new Ui.Draft(drafts, "note"));
@@ -782,8 +797,9 @@ public class SettingsActivity extends Activity {
             org.json.JSONObject o = mapList.get(i);
             ButtonTypes.Type t = ButtonTypes.byId(o.optString("type"));
             int index = i;
+            String title = !o.optString("label").isEmpty() ? o.optString("label") : t != null ? s(t.name) : o.optString("type");
             right.addView(ui.row(null, t != null ? t.icon : R.drawable.ic_remote, C_SUB,
-                    t != null ? s(t.name) : o.optString("type"), keyText(o), null, 0, () -> {
+                    title, keyText(o), null, 0, () -> {
                         mapEdit = index;
                         mapPending = null;
                         showMapPick();
@@ -896,6 +912,7 @@ public class SettingsActivity extends Activity {
         try {
             if (owner >= 0) mapList.get(owner).put("type", "other"); // a type belongs to one button
             key.put("type", type);
+            if (!"other".equals(type)) key.remove("label");
         } catch (org.json.JSONException e) {
             throw new IllegalStateException(e);
         }
@@ -903,7 +920,39 @@ public class SettingsActivity extends Activity {
         mapPending = null;
         mapEdit = -1;
         saveMapList();
-        showMapWait();
+        if (!"other".equals(type)) { showMapWait(); return; }
+        // "Other button": ask what it is; the label is part of the report
+        KeyService.capture = null;
+        KeyService.captureAll = false;
+        showButtonName(keyText(key), key.optString("label", ""), name -> {
+            try {
+                if (name.isEmpty()) key.remove("label"); else key.put("label", name);
+            } catch (org.json.JSONException e) {
+                throw new IllegalStateException(e);
+            }
+            saveMapList();
+            showMapWait();
+        }, this::showMapWait);
+    }
+
+    /** Free text for an "other" button: what is printed on it (empty = no name). */
+    private void showButtonName(String key, String initial, Ui.TextResult save, Runnable skip) {
+        back = skip;
+        drafts.remove("button_name");
+        LinearLayout left = ui.column();
+        left.addView(ui.eyebrow(s(R.string.button_name_eyebrow, key)));
+        left.addView(ui.headline(s(R.string.button_name_title)));
+        TextView b = ui.body(s(R.string.button_name_body));
+        b.setPadding(0, ui.px(14), 0, 0);
+        left.addView(b);
+
+        LinearLayout right = ui.column();
+        right.addView(ui.section(s(R.string.section_name)));
+        EditText in = ui.editor(right, drafts, "button_name", initial, s(R.string.button_name_hint), false,
+                v -> v.length() <= 40, v -> save.on(v.replaceAll("\\s+", " ").trim()), null);
+        right.addView(ui.row(null, R.drawable.ic_undo, C_OFF, s(R.string.button_name_skip), null, null, 0, skip));
+        ui.setScreen(left, right);
+        ui.requestFocusLater(in);
     }
 
     private void saveMapList() {
@@ -928,6 +977,7 @@ public class SettingsActivity extends Activity {
             int code = o.optInt("keycode");
             if (code != 0 && !known.contains(code)) {
                 ed.putString("t" + code, o.optString("type")).putString("k" + code, KeyMap.SYSTEM);
+                if (!o.optString("label").isEmpty()) ed.putString("n" + code, o.optString("label"));
             }
         }
         ed.apply();
@@ -1002,7 +1052,14 @@ public class SettingsActivity extends Activity {
                         android.content.SharedPreferences.Editor ed = KeyMap.prefs(this).edit().putString("t" + code, t.id);
                         if (isNew) ed.putString("k" + code, suggestion);
                         ed.apply();
-                        if (isNew) { focusCode = code; showMain(); } else showChooser(code);
+                        Runnable next = isNew ? () -> { focusCode = code; showMain(); } : () -> showChooser(code);
+                        if (!"other".equals(t.id)) { next.run(); return; }
+                        // "Other button": ask what it is (e.g. "Red button", "Subtitles")
+                        showButtonName(KeyMap.label(code), KeyMap.prefs(this).getString("n" + code, ""), own -> {
+                            if (own.isEmpty()) KeyMap.prefs(this).edit().remove("n" + code).apply();
+                            else KeyMap.prefs(this).edit().putString("n" + code, own).apply();
+                            next.run();
+                        }, next);
                     });
             if (t == cur || focus == null) focus = r;
             right.addView(r);

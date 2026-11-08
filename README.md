@@ -30,7 +30,7 @@ navigation. Its UI is available in English and German.
   app version. Remotes and TVs have separate profiles, so a known remote also works on other TVs.
   See **[supported devices](DEVICES.md)**.
 - **Teaching buttons.** Press the button, then pick its type (Live TV, Netflix, YouTube, Settings,
-  Input, …). The type sets the name and suggests a target.
+  Input, …; for *Other button* you type what it is). The type sets the name and suggests a target.
 - **Upload buttons.** Press the special buttons of your remote in any order and pick what is printed
   on each, then send the mapping (TV model, remote, keycodes, types) without an account. Each report
   becomes a public issue, and an agent turns it into a pull request for the profiles. Apps and
@@ -172,7 +172,8 @@ adb logcat -s RemoteButtons
 
 Before uploading, a wizard records the special buttons: press any button of the remote, in any
 order, and choose what is printed on it (Live TV, Guide, Netflix, YouTube, Prime Video, Disney+,
-Google Play, Apps, Settings, Input, Google Assistant, USB/Media, custom or other button). Buttons that only report a
+Google Play, Apps, Settings, Input, Google Assistant, USB/Media, custom or other button; for *other*
+you can type what it is, e.g. "Subtitles"). Buttons that only report a
 number or a scan code are fine. Mapped buttons can be changed or removed, every change is saved
 right away, and buttons the app did not know yet are added to the overview with factory behavior.
 
@@ -200,11 +201,15 @@ A report contains:
   gave the TV)
 - active and detected profile, app version, press options (on/off)
 - input devices that send keys (name, vendor and product ID)
-- the button mapping: type, keycode, scan code and the remote each button came from
-- the buttons known to the app (keycode, type, own name)
+- the button mapping: type (and the name you typed for *other* buttons), keycode, scan code and
+  the remote each button came from
+- the buttons known to the app (keycode, type, scan code, remote)
 - the optional note
 
-It does not contain assignments, installed apps or the Home Assistant address.
+It does not contain assignments, installed apps, the Home Assistant address or the names you gave
+buttons in the overview; the only free texts are the names typed for *other* buttons in the wizard
+(listed on the upload page before sending) and the note. The worker also drops own names sent by
+app versions up to 1.7.
 
 To run your own worker:
 

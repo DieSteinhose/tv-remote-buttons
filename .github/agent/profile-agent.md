@@ -34,8 +34,8 @@ Report fields: `device` (brand, manufacturer, model, product, device, hardware, 
 `tvModel` = vendor model number if known), `remoteProfile`/`tvProfile` (profiles the app used),
 `detectedRemote`/`detectedTv` (profiles it detected) - older reports have `profile`/`detected`
 instead -, `remotes` (all input devices that send keys), `mapping` (buttons the user pressed and
-the type they chose: type, keycode, key, scan, remote, vendor, product), `keys` (buttons known to
-the app), `note` (free text by the user).
+the type they chose: type, keycode, key, scan, remote, vendor, product, and for type `other` an
+optional `label` the user typed, e.g. "Subtitles"), `keys` (buttons known to the app), `note` (free text by the user).
 
 ## What to do
 
@@ -46,6 +46,10 @@ the app), `note` (free text by the user).
    - Buttons with the same keycode but different scan codes (e.g. TV button and microphone) are one
      key for the app: make one entry, pick the more useful type and name both in `name` (en, de).
    - Skip keycode 0 (no keycode, cannot be assigned) but mention it in the notes.
+   - Buttons of type `other` with a `label`: if the label clearly names a known type (e.g. "Prime",
+     "Guide"), use that type; otherwise keep `other` and use the label as the key's `name`
+     (English, plus German if you can translate it reliably) - only if it is a short, plain button
+     name (letters, digits, spaces, at most 30 characters); otherwise ignore it.
    - Reports that look fake, empty or abusive: change nothing and explain why.
 2. **Identify the remote first.** The input devices in `mapping[].remote` (with vendor/product)
    are the remote. Bluetooth remotes usually have a clear name and vendor/product id. If the keys
