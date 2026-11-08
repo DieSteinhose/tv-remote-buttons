@@ -11,8 +11,10 @@ import android.content.pm.ResolveInfo;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.provider.Settings;
 import android.view.Gravity;
+import android.view.KeyEvent;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.FrameLayout;
@@ -74,8 +76,10 @@ public class SettingsActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        handler.removeCallbacks(toFront);
         appCache = null; // apps may have changed
-        if (back == null) showStart();
+        if (mapActive) showMapping(); // continue the mapping wizard
+        else if (back == null) showStart();
         // fetch current profiles from GitHub; rebuild the start screen if they changed
         Profiles.refresh(this, false, () -> { if (back == null) showStart(); });
     }
@@ -88,11 +92,23 @@ public class SettingsActivity extends Activity {
     @Override
     protected void onPause() {
         super.onPause();
-        if (KeyService.capture != null) { // cancel capturing; show the overview when coming back
-            stopMapping();
-            back = null;
+        // A button may have opened another app (e.g. a Play Store page for an app that is not
+        // installed). Stop capturing while in the background so the TV keeps working; the
+        // mapping wizard (mapActive) is shown again when coming back.
+        if (KeyService.capture != null) {
+            KeyService.captureAll = false;
+            KeyService.capture = null;
+            if (!mapActive) back = null; // teaching a button: back to the overview
         }
+        // Some TVs run a button's factory function even though the key was captured (Philips
+        // passes "global keys" such as Prime Video on before the accessibility filter). If the
+        // screen loses focus right after a capture, come back to the front.
+        boolean justCaptured = SystemClock.uptimeMillis() - KeyService.lastCaptureAt < 2500;
+        if (justCaptured) handler.postDelayed(toFront, 700);
     }
+
+    private final Runnable toFront = () -> startActivity(new Intent(this, SettingsActivity.class)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT));
 
     @Override
     @SuppressWarnings("deprecation")
@@ -214,6 +230,12 @@ public class SettingsActivity extends Activity {
                     null, 0, this::openAccessibilitySettings);
             list.addView(focus);
         }
+        list.addView(ui.section(s(R.string.section_help)));
+        LinearLayout up = ui.row(null, R.drawable.ic_remote, GREEN, s(R.string.upload_row), s(R.string.upload_row_sub),
+                null, 0, this::showUpload);
+        ui.addChevron(up);
+        list.addView(up);
+
         list.addView(ui.section(s(R.string.section_buttons)));
         List<KeyMap.Entry> entries = KeyMap.entries(this);
         if (entries.isEmpty()) list.addView(ui.note(s(R.string.no_buttons)));
@@ -252,12 +274,6 @@ public class SettingsActivity extends Activity {
         list.addView(ui.section(s(R.string.section_ha)));
         list.addView(ui.row(null, R.drawable.ic_bolt, C_HOOK, s(R.string.ha_address), KeyMap.haUrl(this),
                 null, 0, this::showHaUrl));
-
-        list.addView(ui.section(s(R.string.section_help)));
-        LinearLayout up = ui.row(null, R.drawable.ic_remote, GREEN, s(R.string.upload_row), s(R.string.upload_row_sub),
-                null, 0, this::showUpload);
-        ui.addChevron(up);
-        list.addView(up);
 
         list.addView(ui.section(s(R.string.section_app)));
         list.addView(updateRow());
@@ -414,7 +430,7 @@ public class SettingsActivity extends Activity {
 
     /**
      * Shows what a device report contains and uploads it (anonymously, via the report worker).
-     * Uploading needs a button mapping first (see showMapStep); one report per TV and day.
+     * Uploading needs a button mapping first (see startMapping); one report per TV and day.
      */
     private void showUpload() {
         stopMapping();
@@ -432,10 +448,10 @@ public class SettingsActivity extends Activity {
         LinearLayout map;
         if (mapping == null) {
             map = ui.row(null, R.drawable.ic_remote, ACCENT, s(R.string.map_start), s(R.string.map_status_none),
-                    null, 0, () -> showMapStep(0, true));
+                    null, 0, this::startMapping);
         } else {
             map = ui.row(null, R.drawable.ic_remote, GREEN, s(R.string.map_redo),
-                    s(R.string.map_status, mapping.length(), mappingRemote(mapping)), null, 0, () -> showMapStep(0, true));
+                    s(R.string.map_status, mapping.length(), mappingRemote(mapping)), null, 0, this::startMapping);
         }
         ui.addChevron(map);
         right.addView(map);
@@ -469,7 +485,7 @@ public class SettingsActivity extends Activity {
         TextView send = ui.button(s(R.string.upload_send), true, () -> { });
         send.setOnClickListener(v -> {
             if (!Report.enabled()) { showStatus(status, s(R.string.upload_not_configured), RED); return; }
-            if (Report.mapping(this) == null) { showMapStep(0, true); return; }
+            if (Report.mapping(this) == null) { startMapping(); return; }
             if (Report.uploadedToday(this)) { showStatus(status, s(R.string.upload_today), C_INTENT); return; }
             send.setEnabled(false);
             showStatus(status, s(R.string.upload_sending), TEXT2);
@@ -514,108 +530,224 @@ public class SettingsActivity extends Activity {
     }
 
     // ------------------------------------------------------------------ Button mapping wizard
+    // The user presses any special button of the remote, in any order, and then picks what is
+    // printed on it. Every change is saved right away.
 
-    /** Button types asked for, in this order; the last step records any further special buttons. */
-    private static final String[] MAP_TYPES = {"livetv", "guide", "netflix", "youtube", "prime", "disney", "play",
-            "apps", "settings", "input", "media", "free"};
-    /** type -> keycode of the current mapping run; extra special buttons in mapExtra. */
-    private final Map<String, Integer> mapCodes = new java.util.LinkedHashMap<>();
-    private final List<Integer> mapExtra = new ArrayList<>();
-    private int mapStep = -1;
+    /** Mapped buttons of the current run (Report.mappingEntry objects). */
+    private final List<org.json.JSONObject> mapList = new ArrayList<>();
+    /** Button just pressed and not yet assigned a type; null = waiting for a button. */
+    private org.json.JSONObject mapPending;
+    /** Index in mapList of the button being changed; -1 = mapPending is a new button. */
+    private int mapEdit = -1;
+    /** The wizard is open; it is shown again when the screen comes back to the front. */
+    private boolean mapActive;
     private final android.os.Handler handler = new android.os.Handler(android.os.Looper.getMainLooper());
 
-    /** One step of the wizard: asks for the button of MAP_TYPES[step], or for more buttons at the end. */
-    private void showMapStep(int step, boolean fresh) {
+    /** Opens the wizard with the saved mapping. */
+    private void startMapping() {
         if (!KeyService.running) { ui.toast(s(R.string.service_inactive_toast)); return; }
-        if (fresh) { mapCodes.clear(); mapExtra.clear(); }
-        mapStep = step;
-        int total = MAP_TYPES.length + 1;
-        boolean more = step >= MAP_TYPES.length;
-        back = this::showUpload;
+        mapList.clear();
+        org.json.JSONArray saved = Report.mapping(this);
+        if (saved != null) for (int i = 0; i < saved.length(); i++) {
+            org.json.JSONObject o = saved.optJSONObject(i);
+            if (o != null) mapList.add(o);
+        }
+        mapPending = null;
+        mapEdit = -1;
+        mapActive = true;
+        showMapping();
+    }
 
+    /** The current screen of the wizard. */
+    private void showMapping() {
+        if (mapPending != null || mapEdit >= 0) showMapPick();
+        else showMapWait();
+    }
+
+    /** Waits for a button and lists the buttons mapped so far. */
+    private void showMapWait() {
+        back = this::finishMapping;
         LinearLayout left = ui.column();
-        left.addView(ui.eyebrow(s(R.string.map_step, step + 1, total)));
-        ButtonTypes.Type type = more ? null : ButtonTypes.byId(MAP_TYPES[step]);
-        left.addView(ui.headline(more ? s(R.string.map_more_title) : s(R.string.map_press, s(type.name))));
-        TextView b = ui.body(s(more ? R.string.map_more_body : R.string.map_press_body));
+        left.addView(ui.eyebrow(s(R.string.map_start)));
+        left.addView(ui.headline(s(R.string.map_press_any)));
+        TextView b = ui.body(s(R.string.map_press_any_body));
         b.setPadding(0, ui.px(14), 0, 0);
         left.addView(b);
 
         LinearLayout right = ui.column();
-        right.setGravity(Gravity.CENTER_HORIZONTAL);
-        right.addView(ui.iconBox(null, more ? R.drawable.ic_remote : type.icon, ACCENT, 96));
+        LinearLayout head = new LinearLayout(this);
+        head.setGravity(Gravity.CENTER_VERTICAL);
+        head.addView(ui.iconBox(null, R.drawable.ic_remote, ACCENT, 56));
         TextView status = ui.headline(s(R.string.map_waiting));
         status.setTextSize(20);
-        status.setGravity(Gravity.CENTER);
-        status.setPadding(0, ui.px(18), 0, ui.px(6));
-        right.addView(status);
-        TextView sub = ui.note("");
-        sub.setGravity(Gravity.CENTER);
-        right.addView(sub);
-        if (more && !mapExtra.isEmpty()) sub.setText(s(R.string.map_more_count, mapExtra.size()));
-        else if (!more && mapCodes.containsKey(MAP_TYPES[step])) {
-            status.setText(s(R.string.map_got, KeyMap.label(mapCodes.get(MAP_TYPES[step]))));
+        status.setPadding(ui.px(18), 0, ui.px(18), 0);
+        head.addView(status, new LinearLayout.LayoutParams(0, -2, 1f));
+        TextView done = ui.button(s(R.string.map_done), true, this::finishMapping);
+        head.addView(done);
+        right.addView(head);
+
+        right.addView(ui.section(s(R.string.map_list, mapList.size())));
+        if (mapList.isEmpty()) right.addView(ui.note(s(R.string.map_list_empty)));
+        for (int i = 0; i < mapList.size(); i++) {
+            org.json.JSONObject o = mapList.get(i);
+            ButtonTypes.Type t = ButtonTypes.byId(o.optString("type"));
+            int index = i;
+            right.addView(ui.row(null, t != null ? t.icon : R.drawable.ic_remote, C_SUB,
+                    t != null ? s(t.name) : o.optString("type"), keyText(o), null, 0, () -> {
+                        mapEdit = index;
+                        mapPending = null;
+                        showMapPick();
+                    }));
         }
 
-        LinearLayout buttons = new LinearLayout(this);
-        buttons.setGravity(Gravity.CENTER_HORIZONTAL);
-        buttons.setPadding(0, ui.px(18), 0, 0);
-        TextView main = more ? ui.button(s(R.string.map_done), true, this::finishMapping)
-                : ui.button(s(R.string.map_skip), true, () -> { mapCodes.remove(MAP_TYPES[step]); showMapStep(step + 1, false); });
-        buttons.addView(main);
-        if (step > 0) buttons.addView(ui.button(s(R.string.map_back), false, () -> showMapStep(step - 1, false)));
-        right.addView(buttons);
+        ui.setScreen(left, right);
+        ui.requestFocusLater(done);
+        mapCapture();
+    }
+
+    /** Asks what is printed on the pressed (or selected) button. */
+    private void showMapPick() {
+        back = () -> { mapPending = null; mapEdit = -1; showMapWait(); };
+        org.json.JSONObject key = mapPending != null ? mapPending : mapList.get(mapEdit);
+        int code = key.optInt("keycode");
+        String current = mapPending != null ? null : key.optString("type");
+
+        LinearLayout left = ui.column();
+        left.addView(ui.eyebrow(s(R.string.map_got, keyText(key))));
+        left.addView(ui.headline(s(R.string.map_which)));
+        String body = s(R.string.map_which_body);
+        if (code == 0) body = s(R.string.map_no_code) + "\n\n" + body;
+        else if (!KeyEvent.keyCodeToString(code).startsWith("KEYCODE_")) body = s(R.string.map_no_name, code) + "\n\n" + body;
+        org.json.JSONObject twin = sameCode(key);
+        if (twin != null && code != 0) {
+            ButtonTypes.Type tt = ButtonTypes.byId(twin.optString("type"));
+            body = s(R.string.map_shared_code, KeyMap.label(code), tt != null ? s(tt.name) : twin.optString("type")) + "\n\n" + body;
+        }
+        TextView b = ui.body(body);
+        b.setPadding(0, ui.px(14), 0, 0);
+        left.addView(b);
+
+        // Suggestion (profile, keycode name, opened app) first and focused, unless already mapped
+        String guess = ButtonTypes.guess(this, code, mapPending != null ? KeyService.openedAfterCapture : null);
+        List<ButtonTypes.Type> types = new ArrayList<>(java.util.Arrays.asList(ButtonTypes.ALL));
+        ButtonTypes.Type g = ButtonTypes.byId(guess);
+        if (g != null) { types.remove(g); types.add(0, g); }
+
+        LinearLayout right = ui.column();
+        View focus = null;
+        for (ButtonTypes.Type t : types) {
+            int owner = typeOwner(t.id, key);
+            String sub = owner >= 0 ? s(R.string.map_type_taken, keyText(mapList.get(owner))) : null;
+            boolean cur = t.id.equals(current), sug = t == g && !cur;
+            View r = ui.row(null, t.icon, cur || sug ? GREEN : C_SUB, s(t.name), sub,
+                    cur ? s(R.string.map_current) : sug ? s(R.string.map_suggested) : null, GREEN, () -> mapChoose(t.id));
+            if (focus == null || cur) focus = r;
+            right.addView(r);
+        }
+        right.addView(ui.row(null, R.drawable.ic_block, RED, s(mapPending != null ? R.string.map_ignore : R.string.map_remove),
+                null, null, 0, () -> {
+                    if (mapPending == null) { mapList.remove(mapEdit); saveMapList(); }
+                    mapPending = null;
+                    mapEdit = -1;
+                    showMapWait();
+                }));
 
         ui.setScreen(left, right);
-        ui.requestFocusLater(main);
+        ui.requestFocusLater(focus);
+        mapCapture(); // another button replaces this one
+    }
 
+    /** Captures buttons while the wizard is shown. */
+    private void mapCapture() {
         KeyService.captureAll = true;
         KeyService.capture = code -> runOnUiThread(() -> {
-            if (mapStep != step) return;                       // already moving on
-            if (more) {
-                if (!mapCodes.containsValue(code) && !mapExtra.contains(code)) mapExtra.add(code);
-                status.setText(s(R.string.map_got, KeyMap.label(code)));
-                sub.setText(s(R.string.map_more_count, mapExtra.size()));
-                return;
-            }
-            for (Map.Entry<String, Integer> m : mapCodes.entrySet()) {
-                if (m.getValue() == code && !m.getKey().equals(MAP_TYPES[step])) {
-                    status.setText(s(R.string.map_taken, s(ButtonTypes.byId(m.getKey()).name)));
-                    return;
-                }
-            }
-            mapCodes.put(MAP_TYPES[step], code);
-            status.setText(s(R.string.map_got, KeyMap.label(code)));
-            mapStep = -1;
-            handler.postDelayed(() -> showMapStep(step + 1, false), 700);
+            if (!mapActive) return;
+            org.json.JSONObject key = Report.mappingEntry(this, "other", code);
+            int known = indexOf(key);
+            mapPending = known >= 0 ? null : key;
+            mapEdit = known;
+            showMapPick();
         });
+    }
+
+    /**
+     * Index of the same button in mapList: same keycode and scan code. Different buttons may share
+     * a keycode (on Philips both the microphone and the TV button send 811).
+     */
+    private int indexOf(org.json.JSONObject key) {
+        for (int i = 0; i < mapList.size(); i++) {
+            org.json.JSONObject o = mapList.get(i);
+            if (o.optInt("keycode") == key.optInt("keycode") && o.optString("scan").equals(key.optString("scan"))) return i;
+        }
+        return -1;
+    }
+
+    /** Another mapped button with the same keycode but a different scan code, or null. */
+    private org.json.JSONObject sameCode(org.json.JSONObject key) {
+        for (org.json.JSONObject o : mapList) {
+            if (o != key && o.optInt("keycode") == key.optInt("keycode") && !o.optString("scan").equals(key.optString("scan"))) return o;
+        }
+        return null;
+    }
+
+    /** Index of another button that already has this type; -1 if none or the type may repeat. */
+    private int typeOwner(String type, org.json.JSONObject except) {
+        if ("other".equals(type) || "free".equals(type)) return -1;
+        for (int i = 0; i < mapList.size(); i++) {
+            org.json.JSONObject o = mapList.get(i);
+            if (o != except && type.equals(o.optString("type"))) return i;
+        }
+        return -1;
+    }
+
+    private void mapChoose(String type) {
+        org.json.JSONObject key = mapPending != null ? mapPending : mapList.get(mapEdit);
+        int owner = typeOwner(type, key);
+        try {
+            if (owner >= 0) mapList.get(owner).put("type", "other"); // a type belongs to one button
+            key.put("type", type);
+        } catch (org.json.JSONException e) {
+            throw new IllegalStateException(e);
+        }
+        if (mapPending != null) mapList.add(mapPending);
+        mapPending = null;
+        mapEdit = -1;
+        saveMapList();
+        showMapWait();
+    }
+
+    private void saveMapList() {
+        Report.saveMapping(this, new org.json.JSONArray(mapList));
+    }
+
+    /** "NETFLIX", "788 · scan 0x306" (scan code for buttons without a name) */
+    private String keyText(org.json.JSONObject o) {
+        String key = o.optString("key"), scan = o.optString("scan");
+        return !scan.isEmpty() && !KeyEvent.keyCodeToString(o.optInt("keycode")).startsWith("KEYCODE_")
+                || o.optInt("keycode") == 0 ? key + " · scan " + scan : key;
     }
 
     /** Saves the mapping and adds buttons the app did not know yet (factory behavior, so nothing changes). */
     private void finishMapping() {
         stopMapping();
-        org.json.JSONArray arr = new org.json.JSONArray();
+        saveMapList();
         android.content.SharedPreferences.Editor ed = KeyMap.prefs(this).edit();
         List<Integer> known = new ArrayList<>();
         for (KeyMap.Entry e : KeyMap.entries(this)) known.add(e.code);
-        List<Object[]> all = new ArrayList<>();
-        for (Map.Entry<String, Integer> m : mapCodes.entrySet()) all.add(new Object[]{m.getKey(), m.getValue()});
-        for (int code : mapExtra) all.add(new Object[]{"other", code});
-        for (Object[] m : all) {
-            int code = (Integer) m[1];
-            arr.put(Report.mappingEntry(this, (String) m[0], code));
-            if (!known.contains(code)) {
-                ed.putString("t" + code, (String) m[0]).putString("k" + code, KeyMap.SYSTEM);
+        for (org.json.JSONObject o : mapList) {
+            int code = o.optInt("keycode");
+            if (code != 0 && !known.contains(code)) {
+                ed.putString("t" + code, o.optString("type")).putString("k" + code, KeyMap.SYSTEM);
             }
         }
         ed.apply();
-        Report.saveMapping(this, arr);
         showUpload();
     }
 
     private void stopMapping() {
-        mapStep = -1;
-        handler.removeCallbacksAndMessages(null);
+        mapActive = false;
+        mapPending = null;
+        mapEdit = -1;
         KeyService.captureAll = false;
         KeyService.capture = null;
     }
@@ -665,14 +797,18 @@ public class SettingsActivity extends Activity {
         LinearLayout right = ui.column();
         right.addView(ui.section(s(R.string.section_type)));
         ButtonTypes.Type cur = isNew ? null : KeyMap.type(this, code);
+        // When teaching: the suggested type first and focused
+        ButtonTypes.Type g = isNew ? ButtonTypes.byId(ButtonTypes.guess(this, code, KeyService.openedAfterCapture)) : null;
+        List<ButtonTypes.Type> types = new ArrayList<>(java.util.Arrays.asList(ButtonTypes.ALL));
+        if (g != null) { types.remove(g); types.add(0, g); }
         View focus = null;
-        for (ButtonTypes.Type t : ButtonTypes.ALL) {
+        for (ButtonTypes.Type t : types) {
             String suggestion = t.suggest(this);
             String name = "other".equals(t.id) ? s(t.name) + "  (" + KeyMap.label(code) + ")" : s(t.name);
             Drawable app = isPackage(suggestion) ? appIcon(suggestion) : null;
             // show the suggestion only when teaching: changing the type keeps the target as it is
             View r = ui.row(isNew ? app : null, t.icon, ACCENT, name, isNew ? "→  " + describe(suggestion, code) : null,
-                    t == cur ? s(R.string.b_active) : null, ACCENT, () -> {
+                    t == cur ? s(R.string.b_active) : t == g ? s(R.string.map_suggested) : null, t == g ? GREEN : ACCENT, () -> {
                         android.content.SharedPreferences.Editor ed = KeyMap.prefs(this).edit().putString("t" + code, t.id);
                         if (isNew) ed.putString("k" + code, suggestion);
                         ed.apply();

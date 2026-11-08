@@ -53,6 +53,8 @@ keys, remotes = [], []
 for e in mapping[:100]:
     if not isinstance(e, dict) or not lib.KEY_RE.match(str(e.get("key", ""))):
         continue
+    if e.get("keycode") == 0:  # no keycode (only a scan code): cannot be part of a profile
+        continue
     t = e.get("type") if e.get("type") in types else "other"
     if any(k["key"] == e["key"] for k in keys):
         continue

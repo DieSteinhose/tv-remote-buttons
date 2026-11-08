@@ -45,10 +45,43 @@ final class ButtonTypes {
             new Type("apps", R.string.type_apps, R.drawable.ic_apps, KeyMap.SYSTEM),
             new Type("settings", R.string.type_settings, R.drawable.ic_gear, KeyMap.TV_SETTINGS),
             new Type("input", R.string.type_input, R.drawable.ic_input, KeyMap.SYSTEM),
+            new Type("assistant", R.string.type_assistant, R.drawable.ic_mic, KeyMap.SYSTEM),
             new Type("media", R.string.type_media, R.drawable.ic_usb, KeyMap.SYSTEM),
             new Type("free", R.string.type_free, R.drawable.ic_star, KeyMap.SYSTEM),
             new Type("other", R.string.type_other, R.drawable.ic_remote, KeyMap.SYSTEM),
     };
+
+    /**
+     * Type suggested for a pressed button: from the active profile, the keycode name (e.g.
+     * NETFLIX) or the app the button opened by itself; null if nothing fits.
+     */
+    static String guess(Context c, int code, String openedPkg) {
+        Profiles.Profile p = KeyMap.profile(c);
+        if (p != null) for (Profiles.Key k : p.keys) if (k.code == code && byId(k.type) != null) return k.type;
+
+        String n = KeyMap.label(code);
+        if (n.contains("NETFLIX")) return "netflix";
+        if (n.contains("YOUTUBE")) return "youtube";
+        if (n.contains("PRIME") || n.contains("AMAZON")) return "prime";
+        if (n.contains("DISNEY")) return "disney";
+        if (n.contains("PLAY_STORE") || n.contains("GOOGLE_PLAY")) return "play";
+        if (n.equals("TV") || n.contains("LIVE_TV") || n.contains("LIVETV")) return "livetv";
+        if (n.equals("GUIDE") || n.contains("EPG")) return "guide";
+        if (n.contains("ALL_APPS") || n.equals("APPS")) return "apps";
+        if (n.equals("SETTINGS") || n.equals("TV_SETTINGS")) return "settings";
+        if (n.startsWith("TV_INPUT") || n.equals("SOURCE") || n.equals("INPUT")) return "input";
+        if (n.contains("ASSIST") || n.equals("SEARCH") || n.contains("VOICE")) return "assistant";
+        if (n.equals("USB")) return "media";
+        if (n.matches("BUTTON_\\d+")) return "free";
+
+        // The Play Store opens for many app buttons whose app is missing, so it says nothing.
+        if (openedPkg == null || openedPkg.equals("com.android.vending")) return null;
+        String tv = KeyMap.liveTv(c);
+        if (tv != null && tv.startsWith(openedPkg + "/")) return "livetv";
+        if (openedPkg.equals("com.android.tv.settings")) return "settings";
+        for (Type t : ALL) for (String app : t.apps) if (app.equals(openedPkg)) return t.id;
+        return null;
+    }
 
     static Type byId(String id) {
         if (id != null) for (Type t : ALL) if (t.id.equals(id)) return t;

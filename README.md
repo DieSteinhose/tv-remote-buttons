@@ -29,9 +29,9 @@ navigation. Its UI is available in English and German.
   [`profiles/profiles.json`](profiles/profiles.json) at startup, so new TVs need no new app version.
 - **Teaching buttons.** Press the button, then pick its type (Live TV, Netflix, YouTube, Settings,
   Input, …). The type sets the name and suggests a target.
-- **Upload buttons.** A short wizard asks which button is Netflix, YouTube, Live TV and so on, then
-  sends the mapping (TV model, remote, keycodes, types) without an account. Each report becomes a
-  public issue, and a workflow turns it into a pull request for `profiles.json`. Apps and
+- **Upload buttons.** Press the special buttons of your remote in any order and pick what is printed
+  on each, then send the mapping (TV model, remote, keycodes, types) without an account. Each report
+  becomes a public issue, and a workflow turns it into a pull request for `profiles.json`. Apps and
   assignments are never sent. One report per TV and day.
 - **In-app updates** from the GitHub releases (Android asks you to confirm the installation).
 - **Configuration via adb** for setup scripts (see below).
@@ -159,10 +159,11 @@ adb logcat -s RemoteButtons
 
 ## Device reports (upload)
 
-Before uploading, a wizard asks for the buttons one by one (Live TV, Guide, Netflix, YouTube,
-Prime Video, Disney+, Google Play, Apps, Settings, Input, USB/Media, custom button), with *Not there*
-to skip, and finally records any further special buttons. Buttons the app did not know yet are added
-to the overview with factory behavior.
+Before uploading, a wizard records the special buttons: press any button of the remote, in any
+order, and choose what is printed on it (Live TV, Guide, Netflix, YouTube, Prime Video, Disney+,
+Google Play, Apps, Settings, Input, Google Assistant, USB/Media, custom or other button). Buttons that only report a
+number or a scan code are fine. Mapped buttons can be changed or removed, every change is saved
+right away, and buttons the app did not know yet are added to the overview with factory behavior.
 
 **Upload buttons** then posts a JSON report to a small [Cloudflare Worker](worker/), which files it
 as a GitHub issue labeled `device-report`. The GitHub token only exists in the worker, so the app
@@ -264,3 +265,10 @@ Target notation:
 - Key presses injected with `adb shell input keyevent` bypass accessibility key filtering. Test with
   the real remote, or use `--ei test <keycode>`.
 - The program guide shortcut currently works with the MediaTek live TV app (`chiq_mt58` profile).
+- Some TVs start the factory function of certain buttons even though the app intercepts them.
+  Philips, for example, hands "global keys" such as Prime Video to the launcher on its own. The
+  assigned target still runs, but the factory app may open on top of it. While mapping or teaching
+  buttons the app returns to the front by itself.
+- Buttons that report no keycode (only a scan code) cannot be assigned; the mapping still reports
+  them. The same goes for buttons that share a keycode (on Philips the microphone and the TV button
+  both send 811): the mapping keeps them apart by scan code, but they can only be assigned together.

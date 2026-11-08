@@ -23,6 +23,10 @@ public class KeyService extends AccessibilityService {
     /** Keep capturing after a key (mapping wizard); keys within 400 ms of a capture are ignored. */
     static volatile boolean captureAll;
     private long lastCapture;
+    /** Uptime of the last captured key; the settings screen uses it to return to the front. */
+    static volatile long lastCaptureAt;
+    /** App that came to the front right after the last capture (the button's factory function). */
+    static volatile String openedAfterCapture;
     static volatile boolean running;
     private int capturedCode = -1;
 
@@ -63,7 +67,10 @@ public class KeyService extends AccessibilityService {
             if (e.getRepeatCount() > 0 || (all && e.getEventTime() - lastCapture < 400)) return true;
             if (!all) capture = null;
             lastCapture = e.getEventTime();
+            lastCaptureAt = SystemClock.uptimeMillis();
+            openedAfterCapture = null;
             capturedCode = code;
+            Log.i(KeyMap.TAG, "Captured " + KeyMap.label(code));
             KeyMap.rememberSource(this, e);
             cap.onKey(code);
             return true;
@@ -170,6 +177,7 @@ public class KeyService extends AccessibilityService {
         CharSequence pkg = ev.getPackageName();
         if (pkg == null || "com.android.systemui".contentEquals(pkg) || getPackageName().contentEquals(pkg)) return;
         fgPkg = pkg.toString();
+        if (SystemClock.uptimeMillis() - lastCaptureAt < 2500) openedAfterCapture = fgPkg;
         CharSequence cls = ev.getClassName();
         if (epgPendingUntil != 0 && cls != null && liveTvClass != null && liveTvClass.contentEquals(cls)) {
             boolean inTime = SystemClock.uptimeMillis() < epgPendingUntil;

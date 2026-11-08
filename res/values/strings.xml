@@ -59,6 +59,7 @@
     <string name="type_apps">Apps</string>
     <string name="type_settings">Settings</string>
     <string name="type_input">Input</string>
+    <string name="type_assistant">Google Assistant / microphone</string>
     <string name="type_media">USB / Media</string>
     <string name="type_free">Custom button</string>
     <string name="type_other">Other button</string>
@@ -211,20 +212,25 @@
     <!-- Button mapping wizard (before uploading) -->
     <string name="section_mapping">Button mapping</string>
     <string name="map_start">Map buttons</string>
-    <string name="map_redo">Map buttons again</string>
+    <string name="map_redo">Edit mapping</string>
     <string name="map_status">%1$d buttons mapped · %2$s</string>
     <string name="map_status_none">Not mapped yet – needed before uploading</string>
-    <string name="map_step">Map buttons · step %1$d of %2$d</string>
-    <string name="map_press">Press “%1$s”</string>
-    <string name="map_press_body">Press the button on your remote that is labeled like this or shows this symbol. If your remote has no such button, choose “Not there”.</string>
     <string name="map_waiting">Waiting for a button …</string>
     <string name="map_got">Recognized: %1$s</string>
-    <string name="map_taken">This button is already “%1$s”.</string>
-    <string name="map_skip">Not there</string>
-    <string name="map_back">Previous</string>
-    <string name="map_more_title">More special buttons?</string>
-    <string name="map_more_body">Now press any other special buttons, e.g. color buttons, microphone, channel or subtitles. Each one is recorded. Choose “Done” to finish.</string>
-    <string name="map_more_count">%1$d more buttons recorded</string>
+    <string name="map_no_name">This button reports no name, only the number %1$d. That is normal for many special buttons.</string>
+    <string name="map_press_any">Press a button</string>
+    <string name="map_press_any_body">Press the special buttons of your remote one by one, in any order: Netflix, Prime Video, Live TV, Guide, color buttons and so on. After each button, choose what is printed on it.\n\nD-pad, OK, Back, Home and volume are not recorded. If a button opens another app anyway, the app comes back by itself.</string>
+    <string name="map_list">Mapped buttons (%1$d)</string>
+    <string name="map_list_empty">No buttons yet.</string>
+    <string name="map_which">What is on this button?</string>
+    <string name="map_which_body">Choose the label or symbol of the button you just pressed. Press another button to choose that one instead.</string>
+    <string name="map_no_code">This button reports no keycode, only a scan code. It is included in the report but cannot be assigned.</string>
+    <string name="map_shared_code">This button sends the same keycode %1$s as “%2$s”. The report keeps them apart by scan code, but the app can only assign both together.</string>
+    <string name="map_type_taken">Currently %1$s</string>
+    <string name="map_suggested">Suggestion</string>
+    <string name="map_current">Current</string>
+    <string name="map_ignore">Do not map this button</string>
+    <string name="map_remove">Remove from the mapping</string>
     <string name="map_done">Done</string>
     <string name="upload_today">Already uploaded today – possible again tomorrow.</string>
 
