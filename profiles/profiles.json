@@ -94,6 +94,16 @@
           },
           {
             "name": "TPV_SMTRC"
+          },
+          {
+            "name": "TPV_MutilRC",
+            "vendor": "0x0000",
+            "product": "0x0000"
+          },
+          {
+            "name": "TPV_SMTRC",
+            "vendor": "0x0000",
+            "product": "0x0000"
           }
         ]
       },
