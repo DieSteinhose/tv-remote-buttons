@@ -79,6 +79,7 @@ for pid in (report.get("profile"), report.get("detected")):
         finish("covered", f"All mapped buttons are already covered by the profile `{pid}`. Thanks!\n")
 
 brand, product, model = clean(dev.get("brand")), clean(dev.get("product")), clean(dev.get("model"))
+tv_model = clean(dev.get("tvModel"), r"[^A-Za-z0-9 ./_+-]", 40)  # vendor model number, e.g. 65OLED888/12 (newer app versions)
 # Extend the profile the app used or detected; otherwise create one named after the TV
 used = [x for x in (report.get("profile"), report.get("detected")) if isinstance(x, str) and x in by_id]
 pid = used[0] if used else (
@@ -103,7 +104,8 @@ else:
     if remotes:
         match["remotes"] = remotes
     p = {"id": pid, "title": f"{brand} {product} ({model})".replace("()", "").strip(),
-         "notes": f"From device report #{number}, Android {clean(dev.get('android'), n=10)}. Review the default targets.",
+         "notes": f"From device report #{number}" + (f", tested: {tv_model}" if tv_model else "")
+                  + f", Android {clean(dev.get('android'), n=10)}. Review the default targets.",
          "match": match, "keys": keys}
     data["profiles"].append(p)
     title = f"Add profile {pid} from report #{number}"

@@ -171,6 +171,21 @@ public class SettingsActivity extends Activity {
         left.addView(b);
 
         LinearLayout right = ui.column();
+        LinearLayout upd = ui.row(null, R.drawable.ic_download, GREEN, s(R.string.profiles_update),
+                profileStatus != null ? profileStatus : s(R.string.profiles_update_sub), null, 0, () -> { });
+        upd.setOnClickListener(v -> {
+            if (profileUpdating) return;
+            profileUpdating = true;
+            setRowSub(upd, s(R.string.profiles_loading));
+            Profiles.update(this, (changed, err) -> {
+                profileUpdating = false;
+                profileStatus = err != null ? s(R.string.profiles_error, err)
+                        : changed ? s(R.string.profiles_updated, Profiles.all(this).size()) : s(R.string.profiles_current);
+                if (changed && back == backTo) showProfiles(backTo); // new list, status in the row
+                else setRowSub(upd, profileStatus);
+            });
+        });
+        right.addView(upd);
         right.addView(ui.section(s(R.string.section_profile)));
         Profiles.Profile active = KeyMap.profile(this);
         boolean chosen = KeyMap.profileChosen(this);
@@ -188,9 +203,15 @@ public class SettingsActivity extends Activity {
                 none ? s(R.string.b_active) : null, ACCENT, () -> chooseProfile("none"));
         if (none) focus = r;
         right.addView(r);
+        if (profileStatus != null) focus = upd;
         ui.setScreen(left, right);
         ui.requestFocusLater(focus);
+        profileStatus = null;
     }
+
+    /** Result of the last manual profile update (shown once). */
+    private String profileStatus;
+    private boolean profileUpdating;
 
     private void chooseProfile(String id) {
         KeyMap.setProfile(this, id);

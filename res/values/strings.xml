@@ -246,4 +246,10 @@
     <string name="update_permission">Allow “Install unknown apps” for TV Remote Buttons, then select the update again.</string>
     <string name="update_failed">Update failed (%1$s)</string>
     <string name="b_update">Update</string>
+    <string name="profiles_update">Update profiles</string>
+    <string name="profiles_update_sub">Loads the latest device profiles from GitHub now</string>
+    <string name="profiles_updated">%1$d profiles loaded</string>
+    <string name="profiles_current">Profiles are up to date</string>
+    <string name="profiles_loading">Loading …</string>
+    <string name="profiles_error">Profiles could not be loaded (%1$s)</string>
 </resources>

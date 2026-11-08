@@ -164,23 +164,39 @@ final class Profiles {
         long now = System.currentTimeMillis();
         long last = KeyMap.prefs(c).getLong("profiles_fetched", 0);
         if (!force && now - last < REFRESH_MS) return;
-        KeyMap.prefs(c).edit().putLong("profiles_fetched", now).apply();
+        update(c, (changed, err) -> { if (changed && onChange != null) onChange.run(); });
+    }
+
+    interface Done { void done(boolean changed, String error); }
+
+    /** Fetches the profiles now; done runs on the main thread. */
+    static void update(Context ctx, Done done) {
+        Context c = ctx.getApplicationContext();
+        KeyMap.prefs(c).edit().putLong("profiles_fetched", System.currentTimeMillis()).apply();
+        Handler main = new Handler(Looper.getMainLooper());
         new Thread(() -> {
+            boolean changed = false;
+            String error = null;
             try {
                 String json = download(SOURCE_URL);
                 List<Profile> parsed = parse(json, versionCode(c));
                 File cache = new File(c.getFilesDir(), CACHE);
                 String old = cache.exists() ? new String(readAll(new FileInputStream(cache)), StandardCharsets.UTF_8) : null;
-                if (json.equals(old)) return;
-                try (FileOutputStream out = new FileOutputStream(cache)) {
-                    out.write(json.getBytes(StandardCharsets.UTF_8));
+                if (!json.equals(old)) {
+                    try (FileOutputStream out = new FileOutputStream(cache)) {
+                        out.write(json.getBytes(StandardCharsets.UTF_8));
+                    }
+                    all = parsed;
+                    changed = true;
+                    Log.i(KeyMap.TAG, "Profiles updated: " + parsed.size());
                 }
-                all = parsed;
-                Log.i(KeyMap.TAG, "Profiles updated: " + parsed.size());
-                if (onChange != null) new Handler(Looper.getMainLooper()).post(onChange);
             } catch (Exception e) {
+                error = e.getMessage() != null ? e.getMessage() : e.toString();
                 Log.w(KeyMap.TAG, "Profiles not updated: " + e);
             }
+            boolean ch = changed;
+            String err = error;
+            main.post(() -> done.done(ch, err));
         }, "profiles").start();
     }
 
@@ -314,7 +330,36 @@ final class Profiles {
     /** "CHiQ GTVU65 (AI PONT)" */
     static String deviceName() {
         String brand = Build.BRAND == null || Build.BRAND.isEmpty() ? Build.MANUFACTURER : Build.BRAND;
-        String name = Build.PRODUCT != null && !Build.PRODUCT.equalsIgnoreCase(Build.MODEL) ? Build.PRODUCT : "";
+        String model = tvModel();
+        String name = model != null ? model
+                : Build.PRODUCT != null && !Build.PRODUCT.equalsIgnoreCase(Build.MODEL) ? Build.PRODUCT : "";
         return (brand + " " + name).trim() + " (" + Build.MODEL + ")";
+    }
+
+    /**
+     * System properties in which vendors keep the model number of the TV (Build.MODEL is often
+     * just the platform, e.g. "Philips Google TV TA1"). Never the user-editable device name.
+     */
+    private static final String[] MODEL_PROPS = {
+            "persist.sys.set_type",              // Philips / TP Vision, e.g. 65OLED888/12
+            "persist.odm.tpv.sys.ACR_ModName",   // Philips / TP Vision
+    };
+
+    /** Model number of the TV from vendor properties, or null. */
+    static String tvModel() {
+        for (String prop : MODEL_PROPS) {
+            String v = sysProp(prop);
+            if (v != null && v.matches("[A-Za-z0-9][A-Za-z0-9 ./_+-]{2,39}")) return v.trim();
+        }
+        return null;
+    }
+
+    private static String sysProp(String key) {
+        try {
+            Object v = Class.forName("android.os.SystemProperties").getMethod("get", String.class).invoke(null, key);
+            return v == null || v.toString().isEmpty() ? null : v.toString();
+        } catch (Exception e) {
+            return null;
+        }
     }
 }

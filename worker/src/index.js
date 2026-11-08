@@ -104,14 +104,14 @@ function plain(v, max = 60) {
 
 function title(r) {
   const d = r.device;
-  const name = [d.brand, d.product, d.model ? `(${d.model})` : ""].map((x) => plain(x, 40)).filter(Boolean).join(" ");
+  const name = [d.brand, d.tvModel || d.product, d.model ? `(${d.model})` : ""].map((x) => plain(x, 40)).filter(Boolean).join(" ");
   return `Device report: ${name || "unknown device"}`.slice(0, 120);
 }
 
 function body(r) {
   const d = r.device;
   const lines = [];
-  lines.push(`**TV:** ${cell(d.brand)} ${cell(d.product)} ${cell(d.model)} · Android ${cell(d.android)} (SDK ${cell(d.sdk)}) · hardware ${cell(d.hardware)} · manufacturer ${cell(d.manufacturer)}`);
+  lines.push(`**TV:** ${cell(d.brand)} ${d.tvModel ? `model ${cell(d.tvModel)} · ` : ""}${cell(d.product)} ${cell(d.model)} · Android ${cell(d.android)} (SDK ${cell(d.sdk)}) · hardware ${cell(d.hardware)} · manufacturer ${cell(d.manufacturer)}`);
   lines.push(`**App:** ${cell(r.app)} · profile ${cell(r.profile) || "none"} · detected ${cell(r.detected) || "none"}`);
   const remotes = (r.remotes || []).slice(0, 10).map((x) => `${cell(x && x.name)} (vendor ${cell(x && x.vendor)}, product ${cell(x && x.product)})`);
   lines.push(`**Remotes:** ${remotes.join(", ") || "none found"}`);

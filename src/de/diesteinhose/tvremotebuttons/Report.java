@@ -102,7 +102,8 @@ final class Report {
                     .put("brand", Build.BRAND).put("manufacturer", Build.MANUFACTURER)
                     .put("model", Build.MODEL).put("product", Build.PRODUCT).put("device", Build.DEVICE)
                     .put("hardware", Build.HARDWARE).put("android", Build.VERSION.RELEASE)
-                    .put("sdk", Build.VERSION.SDK_INT));
+                    .put("sdk", Build.VERSION.SDK_INT)
+                    .put("tvModel", Profiles.tvModel() != null ? Profiles.tvModel() : JSONObject.NULL));
 
             Profiles.Profile p = KeyMap.profile(c);
             r.put("profile", p != null ? p.id : JSONObject.NULL);

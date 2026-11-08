@@ -231,4 +231,10 @@
     <string name="update_permission">Erlaube „Unbekannte Apps installieren“ für TV Remote Buttons und wähle das Update dann noch einmal.</string>
     <string name="update_failed">Update fehlgeschlagen (%1$s)</string>
     <string name="b_update">Update</string>
+    <string name="profiles_update">Profile aktualisieren</string>
+    <string name="profiles_update_sub">Lädt jetzt die neuesten Geräteprofile von GitHub</string>
+    <string name="profiles_updated">%1$d Profile geladen</string>
+    <string name="profiles_current">Profile sind aktuell</string>
+    <string name="profiles_loading">Wird geladen …</string>
+    <string name="profiles_error">Profile konnten nicht geladen werden (%1$s)</string>
 </resources>

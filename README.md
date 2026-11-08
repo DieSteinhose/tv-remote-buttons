@@ -114,7 +114,8 @@ this one with a `:` separator instead.
 - **Add button:** press the new button on the remote, then pick its type.
 - **Press options:** switch *press twice* and *hold* on or off and choose their timing
   (250/350/500 ms and 400/500/800/1000 ms).
-- **Device profile:** switch or remove the profile. Your own assignments are kept.
+- **Device profile:** switch or remove the profile, or load the latest profiles from GitHub right
+  away with *Update profiles*. Your own assignments are kept.
 - **Upload buttons:** map the buttons in a wizard, see exactly what would be sent, add an optional
   note and create a device report.
 - **App:** shows the version and installs updates from the latest GitHub release. The first update
@@ -127,7 +128,7 @@ single press a target of its own.
 ## Device profiles
 
 Profiles live in [`profiles/profiles.json`](profiles/profiles.json). The app loads them from GitHub
-at startup (at most once per hour), keeps the last download and falls back to the copy bundled in
+at startup (at most once per hour, or right away with *Update profiles*), keeps the last download and falls back to the copy bundled in
 the APK. A profile defines:
 
 - how it matches: TV `brand` and `hardware` prefix, and/or `remotes` (input device name prefix,
@@ -147,6 +148,7 @@ Included profiles:
 | Profile | Devices | Notes |
 |---|---|---|
 | `chiq_mt58` | CHiQ Google TV with MediaTek MT58xx (tested: GTVU65, Android 14) | Bluetooth remote `TVC0GWBT`; the remote sends `MEDIA_SKIP_FORWARD` after every button as a release marker, so that key is protected. |
+| `philips_tpv` | Philips Google TV by TP Vision (tested: 65OLED888/12, MediaTek mt5896, Android 12) | Remotes `TPV_MutilRC`/`TPV_SMTRC`. App buttons are Philips global keys: the TV still runs their factory function even when the app intercepts them. TV button and microphone share keycode 811. |
 
 The easiest way to add a TV is **Upload buttons** in the app: the report becomes an issue, the
 workflow opens a pull request with the generated profile, and after review and merge every app
@@ -177,7 +179,9 @@ covers every mapped button it just comments on the issue.
 
 A report contains:
 
-- device: brand, manufacturer, model, product, hardware, Android version
+- device: brand, manufacturer, model, product, hardware, Android version and, where the vendor
+  stores it, the model number of the TV (e.g. `65OLED888/12` on Philips; never the device name you
+  gave the TV)
 - active and detected profile, app version, press options (on/off)
 - input devices that send keys (name, vendor and product ID)
 - the button mapping: type, keycode, scan code and the remote each button came from

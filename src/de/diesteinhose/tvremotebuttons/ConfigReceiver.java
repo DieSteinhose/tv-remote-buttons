@@ -77,7 +77,7 @@ public class ConfigReceiver extends BroadcastReceiver {
             if (t != null) KeyMap.run(c, t, test, action, false);
         }
         Profiles.Profile p = KeyMap.profile(c);
-        StringBuilder sb = new StringBuilder("profile=" + (p != null ? p.id
+        StringBuilder sb = new StringBuilder("device=" + Profiles.deviceName() + "\nprofile=" + (p != null ? p.id
                 : KeyMap.profileChosen(c) ? "none" : "(not chosen yet)"));
         sb.append("\nha_url=").append(KeyMap.haUrl(c));
         sb.append("\ndouble ").append(KeyMap.enabled(c, KeyMap.DOUBLE) ? "on " : "off ").append(KeyMap.doubleMs(c))
