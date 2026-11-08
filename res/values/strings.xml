@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- English (default). German: values-de/strings.xml -->
 <resources>
-    <string name="app_name">Remote Buttons</string>
+    <string name="app_name">TV Remote Buttons</string>
     <string name="service_desc">Gives the buttons of your remote new functions (e.g. YouTube, Netflix, Live TV). Only sees key presses and which app is in front, never screen content.</string>
 
     <!-- Overview -->
@@ -197,4 +197,20 @@
     <string name="hold_long">Long</string>
     <string name="hold_very_long">Very long</string>
     <string name="std">Default</string>
+    <!-- Upload buttons (device report) -->
+    <string name="section_help">Help improve</string>
+    <string name="upload_row">Upload buttons</string>
+    <string name="upload_row_sub">Helps to add a profile for this TV – no account needed</string>
+    <string name="upload_body">Send the buttons of your remote to the developer so that the app can recognize this TV and its remote in the future.\n\nSent: TV model and Android version, the name of the remote and your buttons (keycodes, types, own names). Not sent: your apps, assignments or addresses.\n\nThe report becomes a public issue on GitHub.</string>
+    <string name="section_sent">What is sent</string>
+    <string name="upload_remote_none">No remote found</string>
+    <string name="upload_keys">%1$d buttons</string>
+    <string name="upload_keys_none">No buttons yet – teach them first with “Add button”</string>
+    <string name="section_note">Note (optional)</string>
+    <string name="note_hint">e.g. which button is missing or what it is labeled</string>
+    <string name="upload_send">Upload</string>
+    <string name="upload_sending">Uploading …</string>
+    <string name="upload_done">Thank you! Report #%1$d was created.</string>
+    <string name="upload_failed">Upload failed (%1$s)</string>
+    <string name="upload_not_configured">Uploading is not set up in this build.</string>
 </resources>

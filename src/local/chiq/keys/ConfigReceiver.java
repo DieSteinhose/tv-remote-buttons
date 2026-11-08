@@ -10,7 +10,7 @@ import android.util.Log;
  * Configuration via adb (shell/system only: the receiver requires android.permission.DUMP).
  *   Assign:          am broadcast -n local.chiq.keys/.ConfigReceiver --ei key 192 --es target @ha
  *   Default:         am broadcast -n local.chiq.keys/.ConfigReceiver --ei key 192 --es target default
- *   HA address:      am broadcast -n local.chiq.keys/.ConfigReceiver --es ha_url http://192.168.1.22:8123
+ *   HA address:      am broadcast -n local.chiq.keys/.ConfigReceiver --es ha_url http://homeassistant.local:8123
  *   Trigger button:  am broadcast -n local.chiq.keys/.ConfigReceiver --ei test 192
  *   Profile:         am broadcast -n local.chiq.keys/.ConfigReceiver --es profile chiq_mt58   (or none, auto)
  *   Only if not set yet (for setup scripts): add --ez keep true

@@ -28,6 +28,9 @@ navigation. Its UI is available in English and German.
   already knows the buttons of its remote. Without a profile you simply teach the buttons yourself.
 - **Teaching buttons.** Press the button, then pick its type (Live TV, Netflix, YouTube, Settings,
   Input, …). The type sets the name and suggests a target.
+- **Upload buttons.** Anyone can send the buttons of their remote (TV model, remote name, keycodes,
+  types) with one click and without an account, so that new device profiles can be added. Reports
+  become public issues labeled `device-report`; apps and assignments are never sent.
 - **Configuration via adb** for setup scripts (see below).
 
 ## How it works
@@ -79,7 +82,7 @@ Signed APKs are published under Releases. To publish one, raise `android:version
 adb install -r build/tv-remote-buttons.apk
 ```
 
-Open **Remote Buttons** from the app list. If the service is not running yet, the app offers
+Open **TV Remote Buttons** from the app list. If the service is not running yet, the app offers
 **Turn on service**, which opens *Settings › Accessibility*. You can also enable it via adb:
 
 ```sh
@@ -100,6 +103,8 @@ this one with a `:` separator instead.
 - **Press options:** switch *press twice* and *hold* on or off and choose their timing
   (250/350/500 ms and 400/500/800/1000 ms).
 - **Device profile:** switch or remove the profile. Your own assignments are kept.
+- **Upload buttons:** shows exactly what would be sent, with an optional note, and creates a
+  device report.
 
 Note: an app cannot hand an intercepted key back to the system. If a button has a *press twice* or
 *hold* assignment, its single press can therefore no longer trigger the factory function. Give the
@@ -127,7 +132,40 @@ adb shell setprop log.tag.RemoteButtons DEBUG
 adb logcat -s RemoteButtons
 ```
 
-Then add a `Profile` to `Profiles.ALL`. Pull requests with new profiles are welcome.
+Then add a `Profile` to `Profiles.ALL`. Pull requests with new profiles are welcome. Without
+programming, use **Upload buttons** in the app: teach all buttons of your remote first, then upload.
+
+## Device reports (upload)
+
+**Upload buttons** posts a JSON report to a small [Cloudflare Worker](worker/), which files it as a
+GitHub issue labeled `device-report`. The GitHub token only exists in the worker, so the app needs
+no account. The worker checks size and structure, allows at most 5 reports per minute and IP
+address, does not store IP addresses, and renders all report text as code so it cannot add links
+or mentions.
+
+A report contains:
+
+- device: brand, manufacturer, model, product, hardware, Android version
+- active and detected profile, app version, press options (on/off)
+- external input devices (name, vendor and product ID)
+- per button: keycode, type, own name, scan code and remote (for taught buttons), and whether it
+  comes from the profile
+- the optional note
+
+It does not contain assignments, installed apps or the Home Assistant address.
+
+To run your own worker:
+
+```sh
+cd worker
+npx wrangler login
+npx wrangler secret put GITHUB_TOKEN   # fine-grained token: your repo, Issues read/write
+npx wrangler deploy                    # prints https://tv-remote-buttons.<account>.workers.dev
+```
+
+Set `REPO` in `worker/wrangler.toml` to your repository and `Report.URL` in
+[`Report.java`](src/local/chiq/keys/Report.java) to `<worker URL>/report`, then create the label:
+`gh label create device-report`.
 
 ## Home Assistant
 

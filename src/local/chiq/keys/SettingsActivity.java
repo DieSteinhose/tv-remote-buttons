@@ -249,6 +249,12 @@ public class SettingsActivity extends Activity {
         list.addView(ui.row(null, R.drawable.ic_bolt, C_HOOK, s(R.string.ha_address), KeyMap.haUrl(this),
                 null, 0, this::showHaUrl));
 
+        list.addView(ui.section(s(R.string.section_help)));
+        LinearLayout up = ui.row(null, R.drawable.ic_remote, GREEN, s(R.string.upload_row), s(R.string.upload_row_sub),
+                null, 0, this::showUpload);
+        ui.addChevron(up);
+        list.addView(up);
+
         ui.setScreen(left, list);
         ui.requestFocusLater(focus);
         focusCode = -1;
@@ -346,6 +352,81 @@ public class SettingsActivity extends Activity {
             KeyMap.prefs(this).edit().putInt(pref, opt[0]).apply();
             showPressOptions(index);
         });
+    }
+
+    // ------------------------------------------------------------------ Upload buttons (device report)
+
+    /** Shows what a device report contains and uploads it (anonymously, via the report worker). */
+    private void showUpload() {
+        back = this::showMain;
+        LinearLayout left = ui.column();
+        left.addView(ui.eyebrow(s(R.string.section_help)));
+        left.addView(ui.headline(s(R.string.upload_row)));
+        TextView b = ui.body(s(R.string.upload_body));
+        b.setPadding(0, ui.px(14), 0, 0);
+        left.addView(b);
+
+        LinearLayout right = ui.column();
+        right.addView(ui.section(s(R.string.section_sent)));
+        View dev = ui.row(null, R.drawable.ic_tv, C_OFF, Profiles.deviceName(),
+                "Android " + Build.VERSION.RELEASE + "  ·  " + Build.HARDWARE, null, 0, () -> { });
+        dev.setFocusable(false);
+        right.addView(dev);
+        List<String[]> remotes = Report.remotes(this);
+        if (remotes.isEmpty()) {
+            View r = ui.row(null, R.drawable.ic_remote, C_OFF, s(R.string.upload_remote_none), null, null, 0, () -> { });
+            r.setFocusable(false);
+            right.addView(r);
+        }
+        for (String[] rm : remotes) {
+            View r = ui.row(null, R.drawable.ic_remote, C_OFF, rm[0], rm[1] + "  ·  " + rm[2], null, 0, () -> { });
+            r.setFocusable(false);
+            right.addView(r);
+        }
+        List<KeyMap.Entry> entries = KeyMap.entries(this);
+        StringBuilder names = new StringBuilder();
+        for (KeyMap.Entry e : entries) names.append(names.length() > 0 ? ", " : "").append(e.name);
+        View keys = ui.row(null, R.drawable.ic_apps, C_OFF,
+                entries.isEmpty() ? s(R.string.upload_keys_none) : s(R.string.upload_keys, entries.size()),
+                names.toString(), null, 0, () -> { });
+        keys.setFocusable(false);
+        right.addView(keys);
+
+        right.addView(ui.section(s(R.string.section_note)));
+        EditText note = ui.textField(drafts.containsKey("note") ? drafts.get("note") : "", s(R.string.note_hint), false);
+        note.addTextChangedListener(new Ui.Draft(drafts, "note"));
+        right.addView(note, new LinearLayout.LayoutParams(-1, -2));
+
+        TextView status = ui.note("");
+        status.setVisibility(View.GONE);
+        LinearLayout buttons = new LinearLayout(this);
+        buttons.setPadding(0, ui.px(12), 0, ui.px(4));
+        TextView send = ui.button(s(R.string.upload_send), true, () -> { });
+        send.setOnClickListener(v -> {
+            if (!Report.enabled()) { showStatus(status, s(R.string.upload_not_configured), RED); return; }
+            send.setEnabled(false);
+            showStatus(status, s(R.string.upload_sending), TEXT2);
+            Report.upload(Report.build(this, note.getText().toString()), (issue, url, err) -> {
+                send.setEnabled(true);
+                if (err != null) showStatus(status, s(R.string.upload_failed, err), RED);
+                else {
+                    drafts.remove("note");
+                    showStatus(status, s(R.string.upload_done, issue) + (url != null ? "\n" + url : ""), GREEN);
+                }
+            });
+        });
+        buttons.addView(send);
+        right.addView(buttons);
+        right.addView(status);
+
+        ui.setScreen(left, right);
+        ui.requestFocusLater(send);
+    }
+
+    private static void showStatus(TextView v, String text, int color) {
+        v.setText(text);
+        v.setTextColor(color);
+        v.setVisibility(View.VISIBLE);
     }
 
     // ------------------------------------------------------------------ Teaching a button
@@ -749,7 +830,7 @@ public class SettingsActivity extends Activity {
             pane.addView(ui.row(null, R.drawable.ic_delete, RED, s(R.string.remove_button), s(R.string.remove_button_sub),
                     null, 0, () -> {
                         KeyMap.prefs(this).edit().remove("k" + code).remove("d" + code).remove("l" + code)
-                                .remove("n" + code).remove("t" + code).apply();
+                                .remove("n" + code).remove("t" + code).remove("s" + code).remove("r" + code).apply();
                         showMain();
                     }));
         }

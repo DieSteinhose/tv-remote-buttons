@@ -5,8 +5,8 @@
      targets. No other background service. Texts: English (values) and German (values-de). -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="local.chiq.keys"
-    android:versionCode="1"
-    android:versionName="1.0">
+    android:versionCode="2"
+    android:versionName="1.1">
 
     <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="34" />
     <uses-feature android:name="android.software.leanback" android:required="false" />

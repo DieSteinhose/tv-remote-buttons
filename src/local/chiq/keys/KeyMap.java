@@ -190,6 +190,17 @@ final class KeyMap {
         return t == null || SYSTEM.equals(t) ? null : t;
     }
 
+    /**
+     * Remembers where a taught key came from, for device reports: s<code> = scan code,
+     * r<code> = "name|vendorId|productId" of the input device (the remote).
+     */
+    static void rememberSource(Context c, KeyEvent e) {
+        SharedPreferences.Editor ed = prefs(c).edit().putInt("s" + e.getKeyCode(), e.getScanCode());
+        android.view.InputDevice dev = e.getDevice();
+        if (dev != null) ed.putString("r" + e.getKeyCode(), dev.getName() + "|" + dev.getVendorId() + "|" + dev.getProductId());
+        ed.apply();
+    }
+
     /** Pref key of an action: k/d/l + keycode. */
     static String prefKey(int code, int action) { return PREFIX[action] + code; }
 

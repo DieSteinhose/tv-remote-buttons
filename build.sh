@@ -21,11 +21,10 @@ KEYSTORE="${KEYSTORE:-$HOME/.android/tv-remote-buttons.jks}"
 KEY_ALIAS="${KEY_ALIAS:-tv-remote-buttons}"
 KEYSTORE_PASS="${KEYSTORE_PASS:-android}"
 
-rm -rf "$OUT"; mkdir -p "$OUT/classes" res/drawable-xhdpi res/drawable-de-xhdpi res/mipmap-xhdpi
+rm -rf "$OUT" res/drawable-de-xhdpi; mkdir -p "$OUT/classes" res/drawable-xhdpi res/mipmap-xhdpi
 
-# Graphics from SVG: launcher banner (English "Buttons", German "Tasten") and icon
+# Graphics from SVG: launcher banner and icon
 rsvg-convert -w 320 -h 180 art/banner.svg -o res/drawable-xhdpi/banner.png
-sed 's|>Buttons</text>|>Tasten</text>|' art/banner.svg | rsvg-convert -w 320 -h 180 -o res/drawable-de-xhdpi/banner.png
 magick res/drawable-xhdpi/banner.png -gravity west -crop 180x180+0+0 +repage -resize 96x96 res/mipmap-xhdpi/ic_launcher.png
 
 # Resources + manifest (also generates R.java)

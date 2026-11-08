@@ -275,30 +275,8 @@ final class Ui {
     EditText editor(LinearLayout into, Map<String, String> drafts, String draftKey, String saved, String hint, boolean uri,
                             TextCheck check, TextResult save, TextResult tryIt) {
         String initial = drafts.containsKey(draftKey) ? drafts.get(draftKey) : saved;
-        EditText in = new EditText(a);
-        in.setId(View.generateViewId());
-        in.setSingleLine(true);
-        in.setInputType(InputType.TYPE_CLASS_TEXT | (uri ? InputType.TYPE_TEXT_VARIATION_URI : 0));
-        in.setImeOptions(EditorInfo.IME_ACTION_DONE);
-        in.setText(initial);
-        in.setSelection(initial.length());
+        EditText in = textField(initial, hint, uri);
         in.addTextChangedListener(new Draft(drafts, draftKey));
-        // single-line field: up/down always leave it (otherwise they only move the cursor to start/end)
-        in.setOnKeyListener((v, keyCode, ev) -> {
-            if (ev.getAction() != android.view.KeyEvent.ACTION_DOWN) return false;
-            int dir = keyCode == android.view.KeyEvent.KEYCODE_DPAD_DOWN ? View.FOCUS_DOWN
-                    : keyCode == android.view.KeyEvent.KEYCODE_DPAD_UP ? View.FOCUS_UP : 0;
-            if (dir == 0) return false;
-            View next = v.focusSearch(dir);
-            if (next != null) next.requestFocus();
-            return true;
-        });
-        in.setHint(hint);
-        in.setTextSize(17);
-        in.setTextColor(TEXT);
-        in.setHintTextColor(TEXT3);
-        in.setPadding(px(16), px(12), px(16), px(12));
-        in.setBackground(states(framed(SURFACE_HI, px(12), 2, ACCENT), null, framed(SURFACE, px(12), 1, LINE)));
         into.addView(in, new LinearLayout.LayoutParams(-1, -2));
 
         TextView err = text("", 13, RED);
@@ -315,6 +293,34 @@ final class Ui {
             if (action == EditorInfo.IME_ACTION_DONE) { run(in, check, err, save); return true; }
             return false;
         });
+        return in;
+    }
+
+    /** Styled single-line text field (D-pad friendly). */
+    EditText textField(String initial, String hint, boolean uri) {
+        EditText in = new EditText(a);
+        in.setId(View.generateViewId());
+        in.setSingleLine(true);
+        in.setInputType(InputType.TYPE_CLASS_TEXT | (uri ? InputType.TYPE_TEXT_VARIATION_URI : 0));
+        in.setImeOptions(EditorInfo.IME_ACTION_DONE);
+        in.setText(initial);
+        in.setSelection(initial.length());
+        // single-line field: up/down always leave it (otherwise they only move the cursor to start/end)
+        in.setOnKeyListener((v, keyCode, ev) -> {
+            if (ev.getAction() != android.view.KeyEvent.ACTION_DOWN) return false;
+            int dir = keyCode == android.view.KeyEvent.KEYCODE_DPAD_DOWN ? View.FOCUS_DOWN
+                    : keyCode == android.view.KeyEvent.KEYCODE_DPAD_UP ? View.FOCUS_UP : 0;
+            if (dir == 0) return false;
+            View next = v.focusSearch(dir);
+            if (next != null) next.requestFocus();
+            return true;
+        });
+        in.setHint(hint);
+        in.setTextSize(17);
+        in.setTextColor(TEXT);
+        in.setHintTextColor(TEXT3);
+        in.setPadding(px(16), px(12), px(16), px(12));
+        in.setBackground(states(framed(SURFACE_HI, px(12), 2, ACCENT), null, framed(SURFACE, px(12), 1, LINE)));
         return in;
     }
 

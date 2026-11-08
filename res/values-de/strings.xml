@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Tastenbelegung</string>
+    <string name="app_name">TV Remote Buttons</string>
     <string name="service_desc">Gibt den Tasten der Fernbedienung neue Funktionen (z. B. YouTube, Netflix, Live TV). Sieht nur Tastendrücke und welche App vorne ist, nie den Bildschirminhalt.</string>
 
     <string name="eyebrow_remote">Fernbedienung</string>
@@ -185,4 +185,19 @@
     <string name="hold_long">Lang</string>
     <string name="hold_very_long">Sehr lang</string>
     <string name="std">Standard</string>
+    <string name="section_help">Mithelfen</string>
+    <string name="upload_row">Tasten hochladen</string>
+    <string name="upload_row_sub">Hilft, ein Profil für diesen Fernseher anzulegen – ohne Konto</string>
+    <string name="upload_body">Schick die Tasten deiner Fernbedienung an den Entwickler, damit die App diesen Fernseher und seine Fernbedienung künftig erkennt.\n\nGesendet werden: Fernsehermodell und Android-Version, der Name der Fernbedienung und deine Tasten (Keycodes, Typen, eigene Namen). Nicht gesendet werden: deine Apps, Belegungen und Adressen.\n\nDie Meldung erscheint öffentlich als Issue auf GitHub.</string>
+    <string name="section_sent">Was gesendet wird</string>
+    <string name="upload_remote_none">Keine Fernbedienung gefunden</string>
+    <string name="upload_keys">%1$d Tasten</string>
+    <string name="upload_keys_none">Noch keine Tasten – lerne sie zuerst mit „Taste hinzufügen“ an</string>
+    <string name="section_note">Notiz (optional)</string>
+    <string name="note_hint">z. B. welche Taste fehlt oder wie sie beschriftet ist</string>
+    <string name="upload_send">Hochladen</string>
+    <string name="upload_sending">Wird hochgeladen …</string>
+    <string name="upload_done">Danke! Meldung #%1$d wurde angelegt.</string>
+    <string name="upload_failed">Hochladen fehlgeschlagen (%1$s)</string>
+    <string name="upload_not_configured">Hochladen ist in dieser Version nicht eingerichtet.</string>
 </resources>

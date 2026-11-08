@@ -56,6 +56,7 @@ public class KeyService extends AccessibilityService {
         if (cap != null && down) {
             capture = null;
             capturedCode = code;
+            KeyMap.rememberSource(this, e);
             cap.onKey(code);
             return true;
         }
