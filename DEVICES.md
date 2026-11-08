@@ -4,13 +4,18 @@ TVs and remotes with a device profile in [`profiles/profiles.json`](profiles/pro
 app downloads the profiles at startup, so a TV listed here works without a new app version. Other
 Android TV / Google TV devices work too; there you teach the buttons yourself.
 
+A profile covers a product family, not a single model: vendors use the same software and remotes
+for all screen sizes and regions of a series, and often for several series. If your exact model is
+not listed but the brand, platform and remote match, the profile very likely fits; the app
+recommends it automatically.
+
 Is your TV missing? Open the app, choose **Upload buttons**, map the buttons and send the report.
 An agent reviews each report, extends the profiles and this list, and opens a pull request.
 
-| TV | Profile | Tested models | Mapped buttons |
+| TV | Profile | Tested series (sizes) | Mapped buttons |
 |---|---|---|---|
 | [CHiQ Google TV (MediaTek)](#chiq_mt58) | `chiq_mt58` | GTVU65 | 9 |
-| [Philips Google TV (TPV)](#philips_tpv) | `philips_tpv` | 65OLED888/12 | 4 |
+| [Philips Google TV (TPV)](#philips_tpv) | `philips_tpv` | OLED888 (65″) | 4 |
 
 ## chiq_mt58
 
@@ -41,7 +46,9 @@ targets because their factory functions are broken on this TV.
 
 **Philips Google TV (TPV)** - brand Philips (TP Vision), remotes `TPV_MutilRC` / `TPV_SMTRC`
 
-- Tested: 65OLED888/12 (Philips Google TV TA1, PH1M_WW_9972, MediaTek mt5896, Android 12)
+- Tested series: OLED888 in 65″ (model number 65OLED888/12, platform Philips Google TV TA1 /
+  PH1M_WW_9972, MediaTek mt5896, Android 12)
+- Likely also fits: other sizes and Philips Google TV series with the same remote
 - Remote: Philips remote, keys arrive via `TPV_MutilRC` and `TPV_SMTRC` (microphone)
 - Live TV: `org.droidtv.playtv/.PlayTvActivity`
 - Reports: #3

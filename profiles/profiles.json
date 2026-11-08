@@ -83,7 +83,7 @@
     {
       "id": "philips_tpv",
       "title": "Philips Google TV (TPV)",
-      "notes": "From device report #3. Tested: 65OLED888/12 (Philips Google TV TA1, PH1M_WW_9972, MediaTek mt5896, Android 12). The app buttons are Philips global keys: the TV still runs their factory function (e.g. the Play Store page of a disabled app) even when the app intercepts them. The TV button and the microphone both send keycode 811 (scan codes 0x2ff and 0xd9), so they can only be assigned together; by default both keep their factory function.",
+      "notes": "From device report #3. Tested: series OLED888 in 65 inch (65OLED888/12, platform Philips Google TV TA1 / PH1M_WW_9972, MediaTek mt5896, Android 12); other sizes and series with the same remote should fit. The app buttons are Philips global keys: the TV still runs their factory function (e.g. the Play Store page of a disabled app) even when the app intercepts them. The TV button and the microphone both send keycode 811 (scan codes 0x2ff and 0xd9), so they can only be assigned together; by default both keep their factory function.",
       "match": {
         "brand": [
           "Philips"
