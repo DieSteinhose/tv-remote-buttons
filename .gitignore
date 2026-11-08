@@ -10,3 +10,5 @@
 # Wrangler cache (contains the Cloudflare account)
 /worker/.wrangler/
 /worker/node_modules/
+# Python cache
+__pycache__/
